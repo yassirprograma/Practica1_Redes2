@@ -1,0 +1,66 @@
+[02:29 p. m.] Fernando Cruz Uribe
+IMPLEMENTACION DE LA COMPOSICION USANDO OBJETOS COMPONENTES ANONIMOS 
+
+[02:29 p. m.] Fernando Cruz Uribe
+/*
+* To change this license header, choose License Headers in Project Properties.
+* To change this template file, choose Tools | Templates
+* and open the template in the editor.
+*/
+package privado;/**
+*
+* @author arobledo10
+*/
+public class Privado {​​​​ /**
+* @param args the command line arguments
+*/
+public static void main(String[] args) {​​​​
+// TODO code application logic here
+//Cuenta cta1=new Cuenta(500); //declaro mi objeto cta1 y que inicie con 500 pesos
+// Cuenta cta2=new Cuenta(700.50); //otro objeto
+//System.out.println("cta1 saldo: = " + cta1.consultar());
+//System.out.println("cta2 saldo: = " + cta2.consultar());
+//cta1.depositar(100);
+//cta2.depositar(300);
+//System.out.println("cta1 saldo: = " + cta1.consultar());
+//System.out.println("cta2 saldo: = " + cta2.consultar());
+//cta1.retirar(400);
+//cta2.retirar(40000); //no se podria realizar este retiro
+//System.out.println("cta1 saldo: = " + cta1.consultar());
+//System.out.println("cta2 saldo: = " + cta2.consultar());
+//29 04 2021:
+Cliente cliente1=new Cliente(new String("Fabian Robles Perez"));
+Cliente cliente2=new Cliente(new String("Mario Alcántara Rojas"));
+//Cuenta cta1=new Cuenta(2500); //declaro mi objeto cta1 y lo inicio con 500 pesos
+cliente1.establecerCuenta(new Cuenta(500000));
+cliente2.establecerCuenta(new Cuenta(500000));
+//Implementacion de la relacion de composicion. Objetos componentes (cuentas)Anónimos
+System.out.println("saldo cliente 1 = " + cliente1.obtenerCuenta().consultar());
+System.out.println("SALDO CLIENTE2 = " + cliente2.obtenerCuenta().consultar());
+cliente2=null; //el ciclo de vida de cta1 termina aquí
+System.out.println("SALDO CLIENTE1 = " + cliente1.obtenerCuenta().consultar());
+/*
+cliente1=null; //el ciclo de vida de cliente1 termina aquí
+System.out.println("SALDO CLIENTE1 = " + cliente1.obtenerCuenta().consultar()); //esto marcaría error de ejecución
+*/
+//Cliente cliente2=new Cliente(new String("Gonzalo Ramirez"));
+//Cuenta cta2= new Cuenta(30000);
+/*cliente2.establecerCuenta(cta2); //aquí los vinculo
+cta2.retirar(29999);
+System.out.println("Saldo cliente2 = " + cliente2.obtenerCuenta().consultar());
+Banco miBanco = new Banco();
+miBanco.agregarCliente(cliente2);
+miBanco.imprimirClientes();
+cta2.depositar(9000);
+miBanco.imprimirClientes();
+cliente2.obtenerCuenta().retirar(10000.5);
+miBanco.imprimirClientes();
+cta2=null;
+cliente2=null;
+miBanco.obtenerCliente(0).obtenerCuenta().depositar(700);
+miBanco.imprimirClientes();*/
+cliente1.obtenerCuenta().depositar(5);
+cliente1.obtenerCuenta().depositar(5);
+System.out.println("SALDO CLIENTE1 = " + cliente1.obtenerCuenta().consultar()); }​​​​
+}​​​​
+

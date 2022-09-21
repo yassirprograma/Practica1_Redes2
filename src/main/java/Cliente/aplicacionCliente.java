@@ -132,7 +132,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                         aplicacion.logsCarpetaServidor.append("Cerpeta seleccionada: "+aplicacion.nombreElementoRemotoSeleccionado+"\n");                                      
                         
                         //desactivamos el botón de descargar
-                        aplicacion.btnDescargarArchivo.setEnabled(true);
+                        aplicacion.btnDescargarArchivo.setEnabled(false);
                         
                         //activamos el botón de abrir carpeta
                         aplicacion.btnAbrirCarpeta.setEnabled(true);         
@@ -178,7 +178,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                        if(archivoSeleccionado.isFile()){ //si es archivo
                             aplicacion.btnSubirArchivo.setEnabled(true);
                        }else{//si es carpeta
-                           aplicacion.btnSubirArchivo.setEnabled(true);
+                           aplicacion.btnSubirArchivo.setEnabled(false);
                        }
                                               
                        aplicacion.btnEliminarArchivoLocal.setEnabled(true);    
@@ -589,7 +589,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
         divLadoCliente.setBorder(BorderFactory.createLineBorder(Color.BLACK));        
         divLadoCliente.setLayout(new BoxLayout(divLadoCliente,BoxLayout.X_AXIS));   
         divLadoCliente.setMaximumSize(new Dimension(dimVentana.width,dimVentana.height*6/14)); //          
-        divLadoCliente.setBackground(Color.GREEN);
+        
         cuerpoVentana.add(divLadoCliente);                              
         
             divCarpetaLocal= new JPanel(); //cuadro para Guardar el filechooser y el título                                   

@@ -1,4 +1,4 @@
-package com.mycompany.practica1_redes2;
+package Servidor;
 
 import java.net.*;
 import java.io.*;
@@ -9,14 +9,25 @@ import java.net.Socket;
 
 public class ServidorSA {
    
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException{
 
+        
         final String rutaCarpetaServerRaiz="."+System.getProperty("file.separator")+"archivosServidor"+System.getProperty("file.separator"); //Ruta (constant)de la carpeta del servidor
-                                
+                       
+        File directorioServer=new File(rutaCarpetaServerRaiz);
+        
+        directorioServer.mkdir();//SI NO EXISTE LA CARPETA DEL SERVIDOR, LO CREAMOS                         
+        
+        System.out.println("La carpeta del servidor está lista para usarse");
+        
+
+        
+        
         try{
-            int pto =8000;                        
+            int pto =8000;                                                           
+            
             ServerSocket servidor = new ServerSocket(pto);
-            System.out.println("Servidor iniciado en el puerto "+pto);
+            System.out.println("Servidor iniciado en el puerto "+pto);                                                          
             
             while(true){ //Este ciclo espera a los clientes       
                 
@@ -62,6 +73,7 @@ public class ServidorSA {
                         rutaNavActualCliente=recibePath(cliente); //actualizamos la ruta en la que se encuentra el cliente
                         
                         System.out.println(rutaNavActualCliente);
+                        
                         //le mandamos la lista de archivos al abrir esa carpeta
                         envia_ls_remoto(cliente,rutaNavActualCliente);                                                                                                
                         
@@ -103,8 +115,7 @@ public class ServidorSA {
                         
                         //si la actual es igual a la original, entonces no puede volver hacia atrás                        
                         System.out.println("Cliente ha solicitado volver a la carpeta de atrás (padre)");                        
-                        
-                        
+                                                
                         //Verificamos que no supere a la ruta inicial (rutaCarpetaServer)
                         if(rutaNavActualCliente.equals(rutaCarpetaServerRaiz)){// si es igual a la inicial, no puede subir de nivel
                             //la mantenemos en el mismo
@@ -119,17 +130,22 @@ public class ServidorSA {
                         //Enviamos el nuevo path (el del padre)
                         envia_path_remoto(cliente,rutaNavActualCliente);
                         System.out.println("ruta actual: "+rutaNavActualCliente);
+                        
+                        
                         //Enviamos el listado
                         envia_ls_remoto(cliente,rutaNavActualCliente);
                         
                         
                     } else if(peticion==6){ 
+                        
                         //cuando el cliente cierra la ventana, el servidor recibe la petición 6
                         System.out.println("Cliente ha solicitado cerrar la conexión");
                         break;//para romper el ciclo y dejar de atender al cliente actual
                     }
                     
                 }                                
+                
+                cliente.close();//cerrarmos el socket que el cliente ha usado
                 
                 //Una vez que el cliente ha cerrado, pasa a esperar a que se conecte otro
                 System.out.println("El cliente: "+ cliente.getInetAddress()+ " ha abandonado la conexión\n\n\n\n");
@@ -215,7 +231,7 @@ public class ServidorSA {
     public static void enviaArchivos(Socket socket, File file) throws IOException {
         long file_length = file.length();
         String nombre_archivo = file.getName();
-        String path = file.getAbsolutePath();
+        String path = file.getPath();
 
         System.out.println("Preparandose pare enviar archivo "+path+"\n\n");
 

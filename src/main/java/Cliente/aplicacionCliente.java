@@ -1,4 +1,4 @@
-package com.mycompany.practica1_redes2;
+package Cliente;
 
 import java.io.*;
 import javax.swing.*;
@@ -91,10 +91,11 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
 
         ////////////////////////////////////////////////////////////////////////                                
         
-        ////////////// INICIALIZACIÓN DEL SOCKET POR EL QUE APLICACIÓN SE COMUNICA///////////////
+        ////////////// INICIALIZACIÓN DEL SOCKET POR EL QUE APLICACIÓN SE COMUNICA///////////////            
         
             //Declaramos el socket a través del cual habrá comunicación con el servidor//
             Socket socketCliente = backendCliente.creaSocket();  
+                        
             
             ///Solicitamos al servidor la ruta relativa de los archivos del server
             aplicacion.rutaActualArchivos=backendCliente.obtener_path_remoto(socketCliente); //la ruta que maneja la interfaz
@@ -102,12 +103,17 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
          
             //Solicitamos al servidor la lista de nombres de archivos de la carpeta raíz remota
             aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(socketCliente);         
+            
+            //Establecemos o preparamos la carpeta de descargas (si no existe, la creamos)
+            File carpetaDescargas=new File(aplicacion.rutaDescargas);        
+            carpetaDescargas.mkdir();//SI NO EXISTE LA CARPETA DEL SERVIDOR, LO CREAMOS                         
+            
         /////////////////////////////////////////////////////////////////////////////////////////
 
         ///Actualizamos la ventana después de la interacción del socket con el servidor/////////////
             aplicacion.listaCarpetaRemota.setListData(aplicacion.listaArchivos); //actualizamos la JList, con la lista de nombres de archivo obtenida del servidor       
             aplicacion.tituloRemota.setText("Carpeta remota: "+aplicacion.rutaActualArchivos);
-            aplicacion.setVisible(true);    
+            aplicacion.setVisible(true);                                        
         //////////////////////////////////////////////////////////////////////////////////////
         
         
@@ -476,7 +482,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
     public aplicacionCliente(Dimension dimVentana){ //se recibe la dimensión de la ventana                   
                 
         
-        System.out.println("INTERFAZ");
+        
         Container cuerpoVentana=getContentPane();
         
         cuerpoVentana.setLayout(new BoxLayout(cuerpoVentana,BoxLayout.Y_AXIS)); //definimos el tipo de posicionamiento para elementos en el cuerpo de la ventana

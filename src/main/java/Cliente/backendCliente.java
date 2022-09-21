@@ -1,4 +1,4 @@
-package com.mycompany.practica1_redes2;
+package Cliente;
 
 import java.io.BufferedReader;
 import java.io.DataInputStream;

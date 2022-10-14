@@ -1,3 +1,9 @@
+/*
+*   ELABORADO POR: KEVIN YASSIR FUENTES GARCÍA, ERICK EDMUNDO GUERRERO ZORZA
+*   APLICACIONES PARA COMUNICACIONES EN RED, SEPTIEMBRE 2022
+*   ISC ESCOM IPN
+*/
+
 package Cliente;
 
 import java.io.BufferedReader;
@@ -15,7 +21,8 @@ import java.net.Socket;
 public class backendCliente {
     
     
-    public static Socket creaSocket() throws UnsupportedEncodingException, IOException{ //para crear un socket y conectarse al servidor
+    //para crear un socket y conectarse al servidor
+    public static Socket creaSocket() throws UnsupportedEncodingException, IOException{ 
         int pto = 8000;
             BufferedReader entradaTeclado = new BufferedReader(new InputStreamReader(System.in,"ISO-8859-1"));//CONJUNTO DE CARACTERES QUE ACEPTA EL ESPAÑOL LATINO (buffer de teclado)
             InetAddress host = null; //PARA GUARDAR LA DIRECCIÓN 1P
@@ -34,21 +41,27 @@ public class backendCliente {
         
         return temp;
     }
+    ///////////////////////////////////////////////////////////////////////////////////////
     
+    //////////////////////Función para enviar un entero que indica la petición que el servidor debe atender
      public static void enviaPeticion(Socket socket, int i) throws IOException{ 
         DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
          dos.writeInt(i); 
          dos.flush();
          
     }
-    
+    ///////////////////////////////////////////////////////////////////////////////////////
+     
+     //////////////////////Función para enviar al servidor la dirección de determinado elemento (archivo o carpeta)     
      public static void enviaPath(Socket socket, String path) throws IOException{ //envía al server el path de la carpeta/archivo que el cliente ha seleccionado desde la interfaz
          DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
          dos.writeUTF(path);
          dos.flush();
          
      }
-    
+    ///////////////////////////////////////////////////////////////////////////////////////
+
+    //////////////////////Función para recibir desde el servidor la dirección referente a un archivo o carpete       
     public static String obtener_path_remoto(Socket socket) throws IOException{
         String temp=new String();
         DataInputStream dis = new DataInputStream(socket.getInputStream());        
@@ -56,8 +69,10 @@ public class backendCliente {
         
         return temp;
     }
-
+    ///////////////////////////////////////////////////////////////////////////////////////
     
+    
+    //////////////////////Función para obtener la lista de los nombres de archivos que se encuentran en alguna carpeta del servidor
     public static String[] obtener_ls_remoto(Socket socket) throws IOException { 
         
         DataInputStream dis = new DataInputStream(socket.getInputStream());
@@ -75,25 +90,17 @@ public class backendCliente {
                 temp[i]= dis.readUTF();
                 System.out.println(temp[i]);
             }
-        }
-        
+        }        
         
         return temp;
     }
+    ///////////////////////////////////////////////////////////////////////////////////////
 
-    public static void navegarLocal(String dir){ 
-        File temp = new File(dir);
-        if(temp.exists()){
-            if(temp.isDirectory()){
-                //rutaActual=rutaActual+fileSeparator+dir;
-            }
-        }else{
-            System.out.println("No se encontraron coincidencias");
-        }
-    }
     
-    ////Función para obtener archivos////////////////////////////////////////////////////////////    
-    public static void obtenerArchivos(Socket socket, String ruta_archivos) throws IOException { 
+
+    ////Función para obtener archivos del servidor////////////////////////////////////////////////////////////    
+    public static void obtenerArchivos(Socket socket, String ruta_archivos) throws IOException {  
+    //la ruta_archivos es de la carpeta en donde se guardarán los archivos obtenidos/descargados
         
         DataInputStream dis = new DataInputStream(socket.getInputStream());
         String nombre = dis.readUTF();
@@ -119,8 +126,10 @@ public class backendCliente {
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////
     
-    //Función para enviar archivos ////
+    //Función para enviar archivos al servidor a través de un socket//////////////////////////////////////////
     public static void enviaArchivos(Socket socket, File file) throws IOException {
+        ///file es el archivo que se va a enviar
+        
         long file_length = file.length();
         String nombre_archivo = file.getName();
         String path = file.getAbsolutePath();
@@ -155,7 +164,7 @@ public class backendCliente {
     /////////////////////////////////////////////////////////////////////////////////////////
 
     
-    ///Función para eliminar un directorio //////////////
+    ///Función para eliminar un directorio local//////////////
     public static void eliminarDirectorioLocal(File file){  
         File[] contenidoDir = file.listFiles();
         if(contenidoDir != null){
@@ -165,8 +174,9 @@ public class backendCliente {
         }
         file.delete(); // Se Eliminan el directorio padre
     }
+    /////////////////////////////////////////////////////////////////////////////////////////
     
-    //Función para eliminar un archivo//////////////////////////////////////////////////////
+    //Función para eliminar un archivo local//////////////////////////////////////////////////////
     public static void eliminarArchivoLocal(String nombre){
         //RECIBE EL NOMBRE (PATH) DE UN ARCHIVO
         
@@ -181,5 +191,5 @@ public class backendCliente {
             }//if
         }//if
     }
-       
+    /////////////////////////////////////////////////////////////////////////////////////////
 }

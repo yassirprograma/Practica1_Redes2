@@ -1,3 +1,9 @@
+/*
+*   ELABORADO POR: KEVIN YASSIR FUENTES GARCÍA, ERICK EDMUNDO GUERRERO ZORZA
+*   APLICACIONES PARA COMUNICACIONES EN RED, SEPTIEMBRE 2022
+*   ISC ESCOM IPN
+*/
+
 package Cliente;
 
 import java.io.*;
@@ -11,12 +17,17 @@ import javax.swing.border.EmptyBorder;
 
 public class aplicacionCliente extends JFrame { //Hereda métodos existentes en la clase JFrame       
     
-    //DEBEMOS GUARDAR EL NOMBRE DEL ARCHIVO QUE SE SELECCIONA EN 
-        String nombreElementoRemotoSeleccionado;    
-        String nombreArchivoLocalSeleccionado;
-        final String rutaDescargas="."+System.getProperty("file.separator")+"archivosDescargados"+System.getProperty("file.separator"); //ruta local a donde se van a ir los archivos descargados 
-        String rutaActualArchivos; //la ruta que maneja la interfaz
+    //ATRIBUTOS PARA GUARDAR INFORMACIÓN DE LA INTERACCIÓN DEL CLIENTE 
+        String nombreElementoRemotoSeleccionado; //PARA GUARDAR EL NOMBRE DEL ARCHIVO REMOTO SELECCIONADO POR EL USUARIO   
+        String nombreArchivoLocalSeleccionado;   //PARA GUARDAR EL NOMBRE DEL ARCHIVO LOCAL SELECCIONADO POR EL USUARIO   
+
+        //ruta local a donde se van a ir los archivos descargados
+        final String rutaDescargas="."+System.getProperty("file.separator")+"archivosDescargados"+System.getProperty("file.separator"); 
+        
+        String rutaActualArchivos; //la ruta de la carpeta remota que se muestra en la pantalla del cliente
         String [] listaArchivos; //la lista que se despliega en pantalla
+        
+        
     /////////////////////ATRIBUTOS/ELEMENTOS DE LA INTERFAZ GRÁFICA////////////////////////////////////////////////////////////////////////
         
         //La indentación indica qué cosa está dentro de otra            
@@ -88,7 +99,8 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
 
             aplicacion.btnSubirArchivo.setEnabled(false);
             aplicacion.btnEliminarArchivoLocal.setEnabled(false);
-
+            
+            
         ////////////////////////////////////////////////////////////////////////                                
         
         ////////////// INICIALIZACIÓN DEL SOCKET POR EL QUE APLICACIÓN SE COMUNICA///////////////            
@@ -108,12 +120,13 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             File carpetaDescargas=new File(aplicacion.rutaDescargas);        
             carpetaDescargas.mkdir();//SI NO EXISTE LA CARPETA DEL SERVIDOR, LO CREAMOS                         
             
+            aplicacion.setVisible(true);    
         /////////////////////////////////////////////////////////////////////////////////////////
 
         ///Actualizamos la ventana después de la interacción del socket con el servidor/////////////
             aplicacion.listaCarpetaRemota.setListData(aplicacion.listaArchivos); //actualizamos la JList, con la lista de nombres de archivo obtenida del servidor       
             aplicacion.tituloRemota.setText("Carpeta remota: "+aplicacion.rutaActualArchivos);
-            aplicacion.setVisible(true);                                        
+                                                
         //////////////////////////////////////////////////////////////////////////////////////
         
         
@@ -277,6 +290,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                         aplicacion.logsCarpetaCliente.append("Archivo subido...\n");
                         aplicacion.logsCarpetaServidor.append("Archivo recibido ...\n");
                         
+                                                
                     } catch (IOException ex) {
                         Logger.getLogger(aplicacionCliente.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -335,11 +349,16 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                        //ENVIAMOS AL SERVER EL PATH DEL ARCHIVO QUE QUEREMOS ELIMINAR
                        backendCliente.enviaPath(socketCliente, aplicacion.rutaActualArchivos+aplicacion.nombreElementoRemotoSeleccionado);
                        
+                       //ACTUALIZAMOS EL LOG:
+                       aplicacion.logsCarpetaServidor.append("Archivo eliminado");
+                       
                        //ACTUALIZAMOS EL LISTADO DE LA CARPETA ACTUAL
                         aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(socketCliente);
                         aplicacion.listaCarpetaRemota.setListData(aplicacion.listaArchivos);
                         
-                                              
+                       //Bloqueamos los botones de descargar y eliminar:
+                       aplicacion.btnDescargarArchivo.setEnabled(false);
+                       aplicacion.btnEliminarArchivoRemoto.setEnabled(false);
                        
                    } catch (IOException ex) {
                        Logger.getLogger(aplicacionCliente.class.getName()).log(Level.SEVERE, null, ex);
@@ -376,8 +395,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                     } catch (IOException ex) {
                         Logger.getLogger(aplicacionCliente.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                }
-                
+                }                
                 //otros tipos de eventos
                 public void mouseEntered(MouseEvent e){} public void mouseExited(MouseEvent e){} public void mousePressed(MouseEvent e){} public void mouseReleased(MouseEvent e){}             
             });     

@@ -1,0 +1,13 @@
+
+PARA PROBAR LA APLICACIÓN DEBE ABRIRSE ESTE PROYECTO EN ALGÚN IDE QUE SOPORTE JAVA MAVEN
+
+PASOS:
+
+1. EL PROGRAMA QUE DEBE COMPILARSE Y EJECUTARSE EN EL SERVIDOR SE ENCUENTRA EN EL PACKAGE "Servidor"
+   1.1 Abrir el archivo java titulado "ServidorSA.java"
+   1.2 Una vez enfocado el código, dar click en "Run file" o "Ejecutar archivo"
+
+2. EL PROGRAMA QUE DEBE COMPILARSE Y EJECUTARSE EN EL CLIENTE SE ENCUENTRA EN EL PACKAGE "Cliente"
+   2.1 Abrir el archivo java titulado "aplicacionCliente.java"
+   2.2 Una vez enfocado el código, dar click en "Run file" o "Ejecutar archivo"
+   2.3 Se debe ingresar la IP del servidor, ya sea un servidor local o uno ejecutado en la misma red LAN

@@ -1,3 +1,9 @@
+/*
+*   ELABORADO POR: KEVIN YASSIR FUENTES GARCÍA, ERICK EDMUNDO GUERRERO ZORZA
+*   APLICACIONES PARA COMUNICACIONES EN RED, SEPTIEMBRE 2022
+*   ISC ESCOM IPN
+*/
+
 package Servidor;
 
 import java.net.*;
@@ -11,25 +17,26 @@ public class ServidorSA {
    
     public static void main(String[] args) throws IOException{
 
-        
+        //Definición de la carpeta raíz del servidor
         final String rutaCarpetaServerRaiz="."+System.getProperty("file.separator")+"archivosServidor"+System.getProperty("file.separator"); //Ruta (constant)de la carpeta del servidor
-                       
-        File directorioServer=new File(rutaCarpetaServerRaiz);
         
-        directorioServer.mkdir();//SI NO EXISTE LA CARPETA DEL SERVIDOR, LO CREAMOS                         
         
+        File directorioServer=new File(rutaCarpetaServerRaiz);        
+        directorioServer.mkdir();//SI NO EXISTE LA CARPETA DEL SERVIDOR, LA CREAMOS                                 
         System.out.println("La carpeta del servidor está lista para usarse");
-        
-
-        
+                
         
         try{
+            //PUERTO DEL SOCKET DEL SERVIDOR
             int pto =8000;                                                           
             
+            //CREACIÓN DEL SOCKET DEL SERVIDOR
             ServerSocket servidor = new ServerSocket(pto);
             System.out.println("Servidor iniciado en el puerto "+pto);                                                          
             
-            while(true){ //Este ciclo espera a los clientes       
+            //Ciclo infinito en espera de nuevos clientes////////////////////////////////////////////////////       
+            while(true){ 
+                //ESTE CICLO ESPERA A UN CLIENTE, CUANDO EL CLIENTE SE CIERRA, SE QUEDA EN ESPERA DE OTRO (INFINITAMENTE)
                 
                 System.out.println("Esperando nuevo cliente...");
                 
@@ -39,14 +46,14 @@ public class ServidorSA {
                 //Imprimimos que se ha aceptado la conexión
                 System.out.println("Cliente conectado desde "+cliente.getInetAddress()+":"+cliente.getPort()); 
                 
-                //Establecemos una ruta 
+                //Establecemos una ruta de navegación para el cliente
                 String rutaNavActualCliente=rutaCarpetaServerRaiz;
                 
                 
-                //enviamos la ruta de la carpeta 
+                //Enviamos la ruta ruta de navegación al cliente
                 envia_path_remoto(cliente, rutaNavActualCliente);
                         
-                ///enviamos la lista de nombres de archivo de la carpeta del servidor
+                ///Enviamos la lista de nombres de archivos de la carpeta del servidor
                 envia_ls_remoto(cliente, rutaNavActualCliente);
                                                 
                 int peticion=0;//para identificar la petición
@@ -59,9 +66,12 @@ public class ServidorSA {
                     5. Volver a la carpeta padre
                     6. Salir (cerrar conexión cliente-servidor)
                 */
-                while(true){//CICLO PARA MANTENER CONEXIÓN CON EL CLIENTE QUE SE HA CONECTADO                                        
+                
+                //CICLO PARA MANTENER CONEXIÓN CON EL CLIENTE QUE SE HA CONECTADO////////////////////////                                                            
+                while(true){
+                    //CUANDO EL CLIENTE ELIGE CERRAR LA CONEXIÓN (O CIERRA LA VENTANA), ESTE CICLO SE ROMPE
                     
-                    //Leemos la petición
+                    //Leemos la petición que envia el cliente
                     peticion=recibePeticion(cliente); //se queda esperando a recibir la petición por parte del cliente                    
                     
                     if(peticion==0){ 
@@ -143,15 +153,19 @@ public class ServidorSA {
                         break;//para romper el ciclo y dejar de atender al cliente actual
                     }
                     
-                }                                
+                }     
+                //TERMINA CONEXIÓN CON DICHO CLIENTE /////////////////////////////////////////////////////////////////////
                 
                 cliente.close();//cerrarmos el socket que el cliente ha usado
                 
-                //Una vez que el cliente ha cerrado, pasa a esperar a que se conecte otro
+                //Una vez que el cliente ha cerrado conexión, pasa a esperar a que se conecte otro
                 System.out.println("El cliente: "+ cliente.getInetAddress()+ " ha abandonado la conexión\n\n\n\n");
                 
                 
-            }
+                
+            }//Ciclo espera clientes
+            /////////////////////////////////////////////////////////////////////////////////////////
+            
         }catch(Exception e){
             e.printStackTrace();
         }
@@ -160,6 +174,8 @@ public class ServidorSA {
     
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
+    
+    ////////////////FUNCIÓN PARA RECIBIR UN NÚMERO QUE IDENTIFICA A LA PETICIÓN DESEADA
     public static int recibePeticion(Socket socket) throws IOException{ //recibe la petición que el cliente envía a través del socket
         int peticion;
         DataInputStream dis = new DataInputStream(socket.getInputStream());
@@ -168,7 +184,9 @@ public class ServidorSA {
         
         return peticion;
     }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
+    ////FUNCIÓN PARA RECIBIR DEL CLIENTE UNA DIRECCIÓN DE UN ARCHIVO
     public static String recibePath(Socket socket) throws IOException{ //recibe del cliente el path del archivo/carpeta que se desea manipular
         String pathTemp;
         DataInputStream dis = new DataInputStream(socket.getInputStream());
@@ -177,28 +195,20 @@ public class ServidorSA {
         
         return pathTemp;
     }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
     
     
-     public static void eliminarArchivo(Socket socket, String rutaCarpeta)throws IOException{
-        DataInputStream dis = new DataInputStream(socket.getInputStream());
-        String nombre_archivo = dis.readUTF();
-        File temp = new File(rutaCarpeta+nombre_archivo);
-        if(temp.isDirectory()){
-            eliminarDirectorio(temp);
-        }else{
-            temp.delete();
-            System.out.println("Elemento remoto eliminado\n");
-        }
-        
-    }
-    
-     public static void envia_path_remoto(Socket socket, String path) throws IOException{ //envia el path de la carpeta que se va a listar
+    ////////////////FUNCIÓN PARA ENVIAR AL CLIENTE EL PATH DE UNA CARPETA ALOJADA EN EL SERVIDOR////////////////////////////////////// 
+    public static void envia_path_remoto(Socket socket, String path) throws IOException{ //envia el path de la carpeta que se va a listar
          DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
          dos.writeUTF(path);
          dos.flush();
          
      }
-    
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////FUNCIÓN PARA ENVIAR AL CLIENTE LA LISTA DE ARCHIVOS QUE SE ENCUENTRAN  EN DETERMINADA CARPETA ALOJADA EN EL SERVIDOR////////////////////////////////////// 
     public static void envia_ls_remoto(Socket socket,String path) throws IOException{ //ENVIA LS REMOTO, DADO UN PATH DENTRO DEL SERVER
         
         DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
@@ -222,12 +232,12 @@ public class ServidorSA {
             dos.flush();
             dos.writeUTF(nombre);
             dos.flush();
-        }//for
-        
+        }//for        
         
     }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
-     //Función para enviar archivos ////
+    //Función para enviar archivos al cliente////////////////////////////////////////////////////////////////////
     public static void enviaArchivos(Socket socket, File file) throws IOException {
         long file_length = file.length();
         String nombre_archivo = file.getName();
@@ -262,8 +272,10 @@ public class ServidorSA {
     }
     /////////////////////////////////////////////////////////////////////////////////////////
     
-     ////Función para recibir archivos////////////////////////////////////////////////////////////    
-    public static void obtenerArchivos(Socket socket, String ruta_archivos) throws IOException { 
+    ////Función para recibir archivos (obtener archivos que el cliente envía)////////////////////////////////////////////////////////////    
+    public static void obtenerArchivos(Socket socket, String ruta_archivos) throws IOException {  
+        //ruta_archivos es la carpeta del servidor en donde se guardará el archivo que ha enviado el cliente
+        
         DataInputStream dis = new DataInputStream(socket.getInputStream());
         String nombre = dis.readUTF();
         long tam = dis.readLong();//Se obtiene el tamaño
@@ -295,6 +307,7 @@ public class ServidorSA {
         }
         file.delete(); // Se Eliminan el directorio padre
     }
+    /////////////////////////////////////////////////////////////////////////////////////////
     
     //Función para eliminar un archivo//////////////////////////////////////////////////////
     public static void eliminarArchivo(String nombre){

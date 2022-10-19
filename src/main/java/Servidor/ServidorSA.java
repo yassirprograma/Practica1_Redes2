@@ -6,6 +6,7 @@
 
 package Servidor;
 
+import static Cliente.backendCliente.eliminarDirectorioLocal;
 import java.net.*;
 import java.io.*;
 import java.io.DataInputStream;
@@ -65,6 +66,8 @@ public class ServidorSA {
                     4. Eliminar  archivos /carpetas remotas
                     5. Volver a la carpeta padre
                     6. Salir (cerrar conexión cliente-servidor)
+                
+                    7. Crear carpeta vacia en remoto (nueva)
                 */
                 
                 //CICLO PARA MANTENER CONEXIÓN CON EL CLIENTE QUE SE HA CONECTADO////////////////////////                                                            
@@ -92,7 +95,7 @@ public class ServidorSA {
                         System.out.println("Cliente ha solicitado subir un archivo/carpeta");
                         
                         //RECIBIMOS EL ARCHIVO EN LA CARPETA ACTUAL                        
-                        obtenerArchivos(cliente,rutaNavActualCliente);
+                        obtenerArchivo(cliente,rutaNavActualCliente);
                         
                         //LE MANDAMOS LA ACTUALIZACIÓN DEL LISTADO DE LA CARPETA ACTUAL
                         envia_ls_remoto(cliente, rutaNavActualCliente);
@@ -100,12 +103,13 @@ public class ServidorSA {
                     } else if(peticion==3){                        
                         System.out.println("Cliente ha solicitado descargar un archivo/carpeta");  
                         
+                        
                         //recibimos la dirección del archivo que el cliente desea
                         String direccionArchivo=recibePath(cliente); 
                         File archivoSolicitado = new File(direccionArchivo); //Abrimos el archivo deseado
                         
                         //Le mandamos al cliente el archivo que solicitó
-                        enviaArchivos(cliente,archivoSolicitado); 
+                        enviaArchivo(cliente,archivoSolicitado); 
                                              
                         
                         
@@ -151,6 +155,16 @@ public class ServidorSA {
                         //cuando el cliente cierra la ventana, el servidor recibe la petición 6
                         System.out.println("Cliente ha solicitado cerrar la conexión");
                         break;//para romper el ciclo y dejar de atender al cliente actual
+                        
+                    }else if(peticion==7){ //Peticion agregada en la nueva actualizacion
+                        
+                        //Cuando el cliente desea subir una carpeta, entonces debe crearse dicha carpeta en el servidor
+                        //(Se crea vacía)
+                        
+                        //Recibimos el nombre de la carpeta
+                        
+                        //Creamos la carpeta:
+                                                                        
                     }
                     
                 }     
@@ -237,8 +251,8 @@ public class ServidorSA {
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
-    //Función para enviar archivos al cliente////////////////////////////////////////////////////////////////////
-    public static void enviaArchivos(Socket socket, File file) throws IOException {
+    //Función para enviar archivo al cliente////////////////////////////////////////////////////////////////////
+    public static void enviaArchivo(Socket socket, File file) throws IOException {
         long file_length = file.length();
         String nombre_archivo = file.getName();
         String path = file.getPath();
@@ -272,15 +286,15 @@ public class ServidorSA {
     }
     /////////////////////////////////////////////////////////////////////////////////////////
     
-    ////Función para recibir archivos (obtener archivos que el cliente envía)////////////////////////////////////////////////////////////    
-    public static void obtenerArchivos(Socket socket, String ruta_archivos) throws IOException {  
-        //ruta_archivos es la carpeta del servidor en donde se guardará el archivo que ha enviado el cliente
+    ////Función para recibir archivo (obtener archivo que el cliente envía)////////////////////////////////////////////////////////////    
+    public static void obtenerArchivo(Socket socket, String ruta_archivo) throws IOException {  
+        //ruta_archivo es la carpeta del servidor en donde se guardará el archivo que ha enviado el cliente
         
         DataInputStream dis = new DataInputStream(socket.getInputStream());
         String nombre = dis.readUTF();
         long tam = dis.readLong();//Se obtiene el tamaño
         System.out.println("Comienza descarga del archivo "+nombre+" de "+tam+" bytes\n\n");
-        DataOutputStream dos = new DataOutputStream(new FileOutputStream(ruta_archivos+nombre));
+        DataOutputStream dos = new DataOutputStream(new FileOutputStream(ruta_archivo+nombre));
         long recibidos=0;//
         int l=0, porcentaje=0;
         while(recibidos<tam){
@@ -301,11 +315,14 @@ public class ServidorSA {
     public static void eliminarDirectorio(File file){  
         File[] contenidoDir = file.listFiles();
         if(contenidoDir != null){
-            for(File child : contenidoDir){
-                child.delete();//Se eliminan los posibles hijos
+            for(File child : contenidoDir){                
+               if(child.isDirectory()){ //si el hijo es directorio, lo eliminamos recursivamente
+                   eliminarDirectorioLocal(child);                   
+               }
+               child.delete();                              
             }
         }
-        file.delete(); // Se Eliminan el directorio padre
+        file.delete(); // Se Elimina el directorio padre
     }
     /////////////////////////////////////////////////////////////////////////////////////////
     

@@ -17,6 +17,8 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class backendCliente {
     
@@ -97,10 +99,90 @@ public class backendCliente {
     ///////////////////////////////////////////////////////////////////////////////////////
 
     
+    ////Función para obtener múltiples archivos/////////////////////////////////////////////////////////////
+    //Es recursiva, entonces puede descargar carpetas con otras carpetas o archivos dentro (puede descargar todo un arbol de archivos completo)
+    public static void obtenerMultiplesArchivos(Socket socket, String listaArchivos[], String rutaActualArchivosRemotos, String rutaLocalGuardado ) throws IOException{
+        //Esta función recibe el socket, la lista de archivos seleccionados, la ruta padre de los archivos seleccionados, y la ruta donde queremos que se guarden los archivos obtenidos
+        
+        for(int i=0;i<listaArchivos.length;i++){
+            //POR CADA ARCHIVO/carpeta                        
 
-    ////Función para obtener archivos del servidor////////////////////////////////////////////////////////////    
-    public static void obtenerArchivos(Socket socket, String ruta_archivos) throws IOException {  
-    //la ruta_archivos es de la carpeta en donde se guardarán los archivos obtenidos/descargados
+            //VERIFICAMOS SI ES CARPETA O ARCHIVO
+            if(listaArchivos[i].endsWith(System.getProperty("file.separator"))){ 
+                //Si termina con / , entonces es carpeta y se debe hacer lo siguiente:                
+                                      
+                //SOLICITAMOS ABRIR ESA CARPETA REMOTA                                
+                //Nombre de la carpeta remota a descargar:
+                String nameCarpetaADescargar=listaArchivos[i];
+                
+                //Generamos la dirección, según el nombre de la carpeta seleccionada y el path que conocemos 
+                String rutaCarpeta=rutaActualArchivosRemotos+nameCarpetaADescargar;                                                       
+                              
+                //Le mandamos la petición al cliente que queremos listar una carpeta hija                
+                backendCliente.enviaPeticion(socket,1); //petición 1= abrir carpeta hija
+                                
+                //Le mandamos la dirección de la carpeta que deseamos abrir/listar                                                                               
+                backendCliente.enviaPath(socket, rutaCarpeta);
+                                
+                //Recibimos la lista de archivos  de la carpeta que queremos descargar
+                String nameArchivosHijosCarpeta[];                                                       
+                nameArchivosHijosCarpeta = obtener_ls_remoto(socket);                
+                
+                
+                //Creamos un directorio con el mismo nombre en local
+                String pathDirLocal=rutaLocalGuardado+nameCarpetaADescargar;
+                
+                File carpeta = new File(pathDirLocal.substring(0, pathDirLocal.length()-1)); //sin la diagonal (separador)
+                    boolean D1 = carpeta.mkdir();  
+                    if(D1)
+                       System.out.println("Directorio "+pathDirLocal.substring(0, pathDirLocal.length()-1)+" creado en local");  
+                    else  
+                       System.out.println("Error !");                  
+                
+                
+                //Mandamos a descargar cada uno de los archivos de esa carpeta:
+                //Llamando recursivamente a esta misma función:
+                obtenerMultiplesArchivos(socket,
+                                        nameArchivosHijosCarpeta,
+                                        rutaCarpeta,
+                                        pathDirLocal
+                                        );
+                
+                //Salimos de la carpeta que estabamos descargando
+                //En remoto
+                    //ENVIAMOS LA PETICION
+                    enviaPeticion(socket,5); //petición 5= volver atrás (carpeta padre)                        
+                        
+                    //Recibimos el nuevo path (el path del padre)
+                    obtener_path_remoto(socket);
+                        
+                    //OBTENEMOS LA LISTA DE LA NUEVA CARPETA
+                    obtener_ls_remoto(socket);
+                
+                
+            }else {
+                //Si no, entonces es archivo y debemos hacer lo siguiente:                
+                
+                //ENVIAMOS LA PETICIÓN AL SERVIDOR
+                enviaPeticion(socket,3); //petición 3= descargar archivo  
+                
+                //Nombre del elemento remoto a descargar
+                String nameElementoADescargar=listaArchivos[i];
+                
+                //ENVIAMOS AL SERVER EL PATH DEL ARCHIVO QUE DESEAMOS  DESCARGAR                                
+                enviaPath(socket,rutaActualArchivosRemotos+nameElementoADescargar);
+                
+                //SE SINCRONIZA CON EL SERVER PARA RECIBIR  EL ARCHIVO
+                obtenerArchivo(socket,rutaLocalGuardado);//lo vamos a guardar en la carpeta que se nos indicó 
+            }                         
+        }                
+    }        
+    ///////////////////////////////////////////////////////////////////////////////////////
+    
+
+    ////Función para obtener archivo del servidor////////////////////////////////////////////////////////////    
+    public static void obtenerArchivo(Socket socket, String ruta_archivo) throws IOException {  
+    //la ruta_archivo es de la carpeta en donde se guardará el archivo obtenido/descargado
         
         DataInputStream dis = new DataInputStream(socket.getInputStream());
         String nombre = dis.readUTF();
@@ -108,7 +190,7 @@ public class backendCliente {
         long tam = dis.readLong();//Se obtiene el tamaño
         
         System.out.println("Comienza descarga del archivo "+nombre+" de "+tam+" bytes\n\n");
-        DataOutputStream dos = new DataOutputStream(new FileOutputStream(ruta_archivos+nombre));
+        DataOutputStream dos = new DataOutputStream(new FileOutputStream(ruta_archivo+nombre));
         long recibidos=0;//
         int l=0, porcentaje=0;
         while(recibidos<tam){
@@ -120,14 +202,13 @@ public class backendCliente {
             recibidos = recibidos + l;
             porcentaje = (int)((recibidos*100)/tam);            
             System.out.println("\rRecibido el "+ porcentaje +" % del archivo");            
-        }//while
-        System.out.println("\nTransmisión finalizada \n");
-        
+        }//while        
+        System.out.println("\nTransmisión finalizada \n");                        
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////
     
-    //Función para enviar archivos al servidor a través de un socket//////////////////////////////////////////
-    public static void enviaArchivos(Socket socket, File file) throws IOException {
+    //Función para enviar archivo al servidor a través de un socket//////////////////////////////////////////
+    public static void enviaArchivo(Socket socket, File file) throws IOException {
         ///file es el archivo que se va a enviar
         
         long file_length = file.length();
@@ -168,11 +249,14 @@ public class backendCliente {
     public static void eliminarDirectorioLocal(File file){  
         File[] contenidoDir = file.listFiles();
         if(contenidoDir != null){
-            for(File child : contenidoDir){
-                child.delete();//Se eliminan los posibles hijos
+            for(File child : contenidoDir){                
+               if(child.isDirectory()){ //si el hijo es directorio, lo eliminamos recursivamente
+                   eliminarDirectorioLocal(child);                   
+               }
+               child.delete();                              
             }
         }
-        file.delete(); // Se Eliminan el directorio padre
+        file.delete(); // Se Elimina el directorio padre
     }
     /////////////////////////////////////////////////////////////////////////////////////////
     

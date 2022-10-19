@@ -5,12 +5,13 @@
 */
 
 package Cliente;
-
+import java.util.concurrent.TimeUnit;
 import java.io.*;
 import javax.swing.*;
 import java.awt.event.*;
 import java.awt.*;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.border.EmptyBorder;
@@ -20,7 +21,10 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
     //ATRIBUTOS PARA GUARDAR INFORMACIÓN DE LA INTERACCIÓN DEL CLIENTE 
         String nombreElementoRemotoSeleccionado; //PARA GUARDAR EL NOMBRE DEL ARCHIVO REMOTO SELECCIONADO POR EL USUARIO   
         String nombreArchivoLocalSeleccionado;   //PARA GUARDAR EL NOMBRE DEL ARCHIVO LOCAL SELECCIONADO POR EL USUARIO   
-
+        String listaArchivosRemotosSeleccionados[]; //PARA GUARDAR CUANDO LA SELECCIÓN DE ARCHIVOS REMOTOS ES MÚLTIPLE
+        String listaArchivosLocalesSeleccionados[]; //PARA GUARDAR CUANDO LA SELECCIÓN DE ARCHIVOS LOCALES ES MÚLTIPLE
+        
+        
         //ruta local a donde se van a ir los archivos descargados
         final String rutaDescargas="."+System.getProperty("file.separator")+"archivosDescargados"+System.getProperty("file.separator"); 
         
@@ -141,19 +145,21 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                                                             
                     
                     if(aplicacion.nombreElementoRemotoSeleccionado.endsWith(System.getProperty("file.separator"))){                       
+                        
                         //si el nombre termina con separador, entonces es una carpeta                        
                         aplicacion.logsCarpetaServidor.append("Cerpeta seleccionada: "+aplicacion.nombreElementoRemotoSeleccionado+"\n");                                      
                         
-                        //desactivamos el botón de descargar
-                        aplicacion.btnDescargarArchivo.setEnabled(false);
+                        //Activamos el botón de descargar
+                        aplicacion.btnDescargarArchivo.setEnabled(true); //////////////
                         
                         //activamos el botón de abrir carpeta
-                        aplicacion.btnAbrirCarpeta.setEnabled(true);         
+                        aplicacion.btnAbrirCarpeta.setEnabled(true);   //////////////
                         
                     }else {
                         //si no es carpeta, entonces es archivo                        
                         aplicacion.logsCarpetaServidor.append("Archivo seleccionado: "+aplicacion.nombreElementoRemotoSeleccionado+"\n");                
-                        aplicacion.btnDescargarArchivo.setEnabled(true);
+                        
+                        aplicacion.btnDescargarArchivo.setEnabled(true); //////////////
                         //desactivamos el botón de abrir carpeta
                         aplicacion.btnAbrirCarpeta.setEnabled(false);         
                     }
@@ -175,6 +181,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             //////////////////////////////////////EVENTOS PARA EL JFILECHOOSER ////////////////////////////////////////////////////
             aplicacion.navegadorCarpetaLocal.addActionListener(new ActionListener() {
                public void actionPerformed(ActionEvent evento) {
+                                   
                    File archivoSeleccionado;
                    System.out.println("Action");    
                     String command = evento.getActionCommand();
@@ -279,7 +286,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                         File temp=new File(aplicacion.nombreArchivoLocalSeleccionado); ;
                         
                         //ENVIAMOS EL ARCHIVO                        
-                        backendCliente.enviaArchivos(socketCliente, temp);
+                        backendCliente.enviaArchivo(socketCliente, temp);
                         
                         
                         //ACTUALIZAMOS EL LISTADO DE LA CARPETA ACTUAL
@@ -301,40 +308,59 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             });     
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             
-            ///////////////////////////EVENTTOS PARA EL BOTÓN DE DESCARGAR ARCHIVO//////////////////////////////////////////////////////////////////////////
+            
+///////////////////////////EVENTTOS PARA EL BOTÓN DE DESCARGAR ARCHIVO//////////////////////////////////////////////////////////////////////////
             aplicacion.btnDescargarArchivo.addMouseListener(new MouseListener(){ //escucha activa
                 public void mouseClicked(MouseEvent e){                    
+                                        
+                    //OBTENEMOS LOS ÍNDICES DE LOS ELEMENTOS REMOTOS SELECCIONADOS POR EL USUARIO
+                    int hola[]=aplicacion.listaCarpetaRemota.getSelectedIndices();                                        
+                    
+                    //MOSTRAMOS EN EL LOG, LOS ARCHIVOS QUE SE COMPARTIRÁN
+                    aplicacion.logsCarpetaServidor.append("Preparándose para compartir "+ hola.length+" archivos...\n");
+                    aplicacion.logsCarpetaCliente.append("Preparándose para descargar "+ hola.length+" archivos...\n");
+                    
+                    
+                    //ALMACENAMOS LOS NOMBRES DE ARCHIVOS SELECCIONADOS
+                    aplicacion.listaArchivosRemotosSeleccionados=new String [hola.length]; 
+                    
+                    for(int i=0;i<hola.length ;i++){
+                        aplicacion.listaArchivosRemotosSeleccionados[i]=aplicacion.listaArchivos[hola[i]];
+                        aplicacion.logsCarpetaServidor.append("webo "+" \n");
+                        
+                        
+                        //MOSTRAMOS EN EL LOG, LOS ARCHIVOS QUE SE COMPARTIRAN/DESCARGARÁN:                        
+                        aplicacion.logsCarpetaServidor.append("Preparándose para compartir el archivo "+aplicacion.listaArchivosRemotosSeleccionados[i]+" \n");
+                        aplicacion.logsCarpetaCliente.append("Preparándose para descargar el archivo "+aplicacion.listaArchivosRemotosSeleccionados[i]+" \n");
+                        
+                    }
+                    
+                    
                     try {
                         
-                        //Mostramos en el log, la operación
-                        aplicacion.logsCarpetaCliente.append("Descargando archivo en: "+aplicacion.rutaDescargas+"\n");
-                        aplicacion.logsCarpetaServidor.append("Compartiendo archivo...\n");
+                        //MANDAMOS A LLAMAR A LA FUNCIÓN QUE DESCARGA MÚLTIPLES ARCHIVOS
+                        backendCliente.obtenerMultiplesArchivos(socketCliente, //EL SOCKET
+                                aplicacion.listaArchivosRemotosSeleccionados, //la lista de nombres de archivos seleccionados
+                                aplicacion.rutaActualArchivos, //la ruta actual de los archivos
+                                aplicacion.rutaDescargas); //la ruta local donde queremos que se guarde la descarga
                         
-                        //ENVIAMOS LA PETICIÓN AL SERVIDOR
-                        backendCliente.enviaPeticion(socketCliente,3); //petición 3= descargar archivo                        
+                        //NOTIFICAMOS QUE SE HAN DESCARGADO LOS ARCHIVOS
+                        aplicacion.logsCarpetaServidor.append("Se han compartido "+ hola.length+" archivos\n");
+                        aplicacion.logsCarpetaCliente.append("Se han descargado "+ hola.length+" archivos\n");
                         
-                        //ENVIAMOS AL SERVER EL PATH DEL ARCHIVO QUE DESEAMOS  DESCARGAR                                
-                        backendCliente.enviaPath(socketCliente, aplicacion.rutaActualArchivos+aplicacion.nombreElementoRemotoSeleccionado);
-                        
-                        //SE SINCRONIZA CON EL SERVER PARA RECIBIR  EL ARCHIVO
-                        backendCliente.obtenerArchivos(socketCliente, aplicacion.rutaDescargas);//lo vamos a guardar en la carpeta de descargas de este proyecto
-                        
-                        //Mostramos en el log, la operación
-                        aplicacion.logsCarpetaServidor.append("Se ha compartido el archivo: "+aplicacion.nombreElementoRemotoSeleccionado+"\n");                        
-                        aplicacion.logsCarpetaCliente.append("Se ha descargado el archivo "+aplicacion.nombreElementoRemotoSeleccionado+ " en: "+aplicacion.rutaDescargas+"\n");                        
-                        
-                        //Refrescamos el jfilechooser
-                        aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File("./"));
-                        aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File(aplicacion.rutaDescargas));
-                        
-                                                
                     } catch (IOException ex) {
                         Logger.getLogger(aplicacionCliente.class.getName()).log(Level.SEVERE, null, ex);
-                    }                                                            
+                    }
+                    
+                    
+                    //Refrescamos el jfilechooser
+                    aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File("./"));
+                    aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File(aplicacion.rutaDescargas));                                                            
                 }
               
                 //otros tipos de eventos
                 public void mouseEntered(MouseEvent e){} public void mouseExited(MouseEvent e){} public void mousePressed(MouseEvent e){} public void mouseReleased(MouseEvent e){}             
+                
             });     
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         

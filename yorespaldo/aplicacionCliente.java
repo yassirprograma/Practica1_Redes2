@@ -5,26 +5,27 @@
 */
 
 package Cliente;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.awt.event.*;
+import java.util.concurrent.TimeUnit;
 import java.io.*;
+import javax.swing.*;
+import java.awt.event.*;
+import java.awt.*;
 import java.net.Socket;
-import java.util.Objects;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.border.EmptyBorder;
 
 public class aplicacionCliente extends JFrame { //Hereda métodos existentes en la clase JFrame       
     
     //ATRIBUTOS PARA GUARDAR INFORMACIÓN DE LA INTERACCIÓN DEL CLIENTE 
         String nombreElementoRemotoSeleccionado; //PARA GUARDAR EL NOMBRE DEL ARCHIVO REMOTO SELECCIONADO POR EL USUARIO   
-        String[] nombresArchivoLocalSeleccionado;   //PARA GUARDAR EL NOMBRE DEL ARCHIVO LOCAL SELECCIONADO POR EL USUARIO
-        String [] listaArchivosRemotosSeleccionados; //PARA GUARDAR CUANDO LA SELECCIÓN DE ARCHIVOS REMOTOS ES MÚLTIPLE
-
-
-    //ruta local a donde se van a ir los archivos descargados
+        String nombreArchivoLocalSeleccionado;   //PARA GUARDAR EL NOMBRE DEL ARCHIVO LOCAL SELECCIONADO POR EL USUARIO   
+        String listaArchivosRemotosSeleccionados[]; //PARA GUARDAR CUANDO LA SELECCIÓN DE ARCHIVOS REMOTOS ES MÚLTIPLE
+        String listaArchivosLocalesSeleccionados[]; //PARA GUARDAR CUANDO LA SELECCIÓN DE ARCHIVOS LOCALES ES MÚLTIPLE
+        
+        
+        //ruta local a donde se van a ir los archivos descargados
         final String rutaDescargas="."+System.getProperty("file.separator")+"archivosDescargados"+System.getProperty("file.separator"); 
         
         String rutaActualArchivos; //la ruta de la carpeta remota que se muestra en la pantalla del cliente
@@ -35,8 +36,9 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
         
         //La indentación indica qué cosa está dentro de otra            
         Font fontTitulos; //fuentes
+        Font fontNombreArchivos;
 
-    JPanel divLadoServer; //contenedor para lo relacionado a la manipulación de la carpeta del cliente
+        JPanel divLadoServer; //contenedor para lo relacionado a la manipulación de la carpeta del cliente        
             JPanel divCarpetaRemota;    
                 JLabel tituloRemota; //para indicar que es la carpeta remota
                 JScrollPane divScrollRemota; //Div con scroll para la carpeta remota    
@@ -70,7 +72,15 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                 JToolBar opcionesCarpetaLocal; //barra de herramientas para la carpeta local (botones)
                     JButton btnSubirArchivo;
                     JButton btnEliminarArchivoLocal;
+    /////////////////////////////////////////////////////////////////////////////////////////////                        
     
+                    
+
+                    
+
+
+                    
+                    
     /////////////////////////////FUNCIÓN MAIN (EJECUCIÓN DE LA APLICACIÓN)///////////////////////////////////////////////////
      public static void main(String[] args) throws UnsupportedEncodingException, IOException{               
                         
@@ -84,6 +94,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             aplicacion.setResizable(false);             
             
             aplicacion.nombreElementoRemotoSeleccionado="*"; //ningún archivo remoto se encuentra seleccionado en la ventana
+            aplicacion.nombreArchivoLocalSeleccionado="*";  //ningún archivo local se encuentra seleccionado en la ventana
             aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File(aplicacion.rutaDescargas));
             aplicacion.btnAbrirCarpeta.setEnabled(false);         
             aplicacion.btnDescargarArchivo.setEnabled(false);
@@ -99,17 +110,15 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
         ////////////// INICIALIZACIÓN DEL SOCKET POR EL QUE APLICACIÓN SE COMUNICA///////////////            
         
             //Declaramos el socket a través del cual habrá comunicación con el servidor//
-            Socket socketCliente = backendCliente.creaSocket();
-            DataOutputStream dos = new DataOutputStream(socketCliente.getOutputStream());
-            DataInputStream dis = new DataInputStream(socketCliente.getInputStream());
+            Socket socketCliente = backendCliente.creaSocket();  
                         
             
             ///Solicitamos al servidor la ruta relativa de los archivos del server
-            aplicacion.rutaActualArchivos=backendCliente.obtener_path_remoto(dis); //la ruta que maneja la interfaz
+            aplicacion.rutaActualArchivos=backendCliente.obtener_path_remoto(socketCliente); //la ruta que maneja la interfaz
             System.out.println(aplicacion.rutaActualArchivos);
          
             //Solicitamos al servidor la lista de nombres de archivos de la carpeta raíz remota
-            aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(dis);
+            aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(socketCliente);         
             
             //Establecemos o preparamos la carpeta de descargas (si no existe, la creamos)
             File carpetaDescargas=new File(aplicacion.rutaDescargas);        
@@ -120,7 +129,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
 
         ///Actualizamos la ventana después de la interacción del socket con el servidor/////////////
             aplicacion.listaCarpetaRemota.setListData(aplicacion.listaArchivos); //actualizamos la JList, con la lista de nombres de archivo obtenida del servidor       
-            aplicacion.tituloRemota.setText("Carpeta remota:"+aplicacion.rutaActualArchivos);
+            aplicacion.tituloRemota.setText("Carpeta remota: "+aplicacion.rutaActualArchivos);
                                                 
         //////////////////////////////////////////////////////////////////////////////////////
         
@@ -172,22 +181,30 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             //////////////////////////////////////EVENTOS PARA EL JFILECHOOSER ////////////////////////////////////////////////////
             aplicacion.navegadorCarpetaLocal.addActionListener(new ActionListener() {
                public void actionPerformed(ActionEvent evento) {
-                    
-                     
+                                   
+                   File archivoSeleccionado;
+                   System.out.println("Action");    
                     String command = evento.getActionCommand();
-                    
-                   if (command.equals(JFileChooser.APPROVE_SELECTION)) {
-                       File[] archivosSeleccionados=aplicacion.navegadorCarpetaLocal.getSelectedFiles();
-                       int cantidadArchSeleccionados=archivosSeleccionados.length;
-                       aplicacion.logsCarpetaCliente.append("Se han seleccinado"+cantidadArchSeleccionados+"\n");
-                       System.out.println("Se han seleccinado"+cantidadArchSeleccionados+"\n");
+
+                   if (command.equals(JFileChooser.APPROVE_SELECTION)) {                                        
+                       archivoSeleccionado= aplicacion.navegadorCarpetaLocal.getSelectedFile();
+                       
+                       aplicacion.nombreArchivoLocalSeleccionado=archivoSeleccionado.getPath();
+                       
+                       aplicacion.logsCarpetaCliente.append("Elemento Seleccionado: "+aplicacion.nombreArchivoLocalSeleccionado+"\n");
+                       System.out.println(aplicacion.nombreArchivoLocalSeleccionado);
 
                        //Una vez que se ha elegido un archivo, ya se pueden activar los botones para realizar determinada acción
-                       aplicacion.btnEliminarArchivoLocal.setEnabled(true);
-                       aplicacion.btnSubirArchivo.setEnabled(true);
+                       if(archivoSeleccionado.isFile()){ //si es archivo
+                            aplicacion.btnSubirArchivo.setEnabled(true);
+                       }else{//si es carpeta
+                           aplicacion.btnSubirArchivo.setEnabled(false);
+                       }
+                                              
+                       aplicacion.btnEliminarArchivoLocal.setEnabled(true);    
 
                    }  else if (command.equals(JFileChooser.CANCEL_SELECTION)) {                    
-                       
+                       archivoSeleccionado = null;
                        aplicacion.logsCarpetaCliente.append("Ningún archivo seleccionado\n");
                        System.out.println("Ningún archivo seleccionado");
 
@@ -220,7 +237,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                 public void mouseClicked(MouseEvent e){    
                     try {                        
                         //le mandamos la petición al cliente que queremos listar una carpeta hija
-                        backendCliente.enviaPeticion(dos,1); //petición 1= abrir carpeta hija
+                        backendCliente.enviaPeticion(socketCliente,1); //petición 1= abrir carpeta hija
                         
                         //generamos la dirección, según el nombre de la carpeta seleccionada y el path que conocemos 
                         aplicacion.rutaActualArchivos=aplicacion.rutaActualArchivos+aplicacion.nombreElementoRemotoSeleccionado;                                       
@@ -228,10 +245,10 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                                 System.out.println(aplicacion.rutaActualArchivos);
                         
                         //le mandamos la dirección de la carpeta que deseamos abrir/listar                                                                               
-                        backendCliente.enviaPath(dos, aplicacion.rutaActualArchivos);
+                        backendCliente.enviaPath(socketCliente, aplicacion.rutaActualArchivos);
                         
                         //recibimos la lista de la carpeta enviada desde el servidor
-                        aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(dis);
+                        aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(socketCliente);
                         
                         //Actualizamos la jlist
                         aplicacion.listaCarpetaRemota.setListData(aplicacion.listaArchivos);
@@ -256,9 +273,34 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             
             ///////////////////////////EVENTTOS PARA EL BOTÓN DE SUBIR ARCHIVO//////////////////////////////////////////////////////////////////////////
             aplicacion.btnSubirArchivo.addMouseListener(new MouseListener(){ //escucha activa
-                public void mouseClicked(MouseEvent e){
-                    //MOSTRAMOS EN EL LOG:
+                public void mouseClicked(MouseEvent e){    
+                    try {
+                        //MOSTRAMOS EN EL LOG:
+                        aplicacion.logsCarpetaCliente.append("Subiendo archivo al servidor...\n");
+                        aplicacion.logsCarpetaServidor.append("Recibiendo archivo ...\n");
                         
+                        //ENVIAMOS LA PETICIÓN AL SERVIDOR
+                        backendCliente.enviaPeticion(socketCliente,2); //petición 2= subir archivo
+                                             
+                        //PREPARAMOS EL ARCHIVO LOCAL ELEGIDO (lo abrimos)
+                        File temp=new File(aplicacion.nombreArchivoLocalSeleccionado); ;
+                        
+                        //ENVIAMOS EL ARCHIVO                        
+                        backendCliente.enviaArchivo(socketCliente, temp);
+                        
+                        
+                        //ACTUALIZAMOS EL LISTADO DE LA CARPETA ACTUAL
+                        aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(socketCliente);
+                        aplicacion.listaCarpetaRemota.setListData(aplicacion.listaArchivos);
+                        
+                        
+                        aplicacion.logsCarpetaCliente.append("Archivo subido...\n");
+                        aplicacion.logsCarpetaServidor.append("Archivo recibido ...\n");
+                        
+                                                
+                    } catch (IOException ex) {
+                        Logger.getLogger(aplicacionCliente.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 }
                 
                 //otros tipos de eventos
@@ -267,12 +309,12 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             
             
-            ///////////////////////////EVENTTOS PARA EL BOTÓN DE DESCARGAR ARCHIVO//////////////////////////////////////////////////////////////////////////
+///////////////////////////EVENTTOS PARA EL BOTÓN DE DESCARGAR ARCHIVO//////////////////////////////////////////////////////////////////////////
             aplicacion.btnDescargarArchivo.addMouseListener(new MouseListener(){ //escucha activa
                 public void mouseClicked(MouseEvent e){                    
                                         
                     //OBTENEMOS LOS ÍNDICES DE LOS ELEMENTOS REMOTOS SELECCIONADOS POR EL USUARIO
-                    int[] hola =aplicacion.listaCarpetaRemota.getSelectedIndices();
+                    int hola[]=aplicacion.listaCarpetaRemota.getSelectedIndices();                                        
                     
                     //MOSTRAMOS EN EL LOG, LOS ARCHIVOS QUE SE COMPARTIRÁN
                     aplicacion.logsCarpetaServidor.append("Preparándose para compartir "+ hola.length+" archivos...\n");
@@ -284,7 +326,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                     
                     for(int i=0;i<hola.length ;i++){
                         aplicacion.listaArchivosRemotosSeleccionados[i]=aplicacion.listaArchivos[hola[i]];
-                        
+                        aplicacion.logsCarpetaServidor.append("webo "+" \n");
                         
                         
                         //MOSTRAMOS EN EL LOG, LOS ARCHIVOS QUE SE COMPARTIRAN/DESCARGARÁN:                        
@@ -297,9 +339,9 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                     try {
                         
                         //MANDAMOS A LLAMAR A LA FUNCIÓN QUE DESCARGA MÚLTIPLES ARCHIVOS
-                        backendCliente.obtenerMultiplesArchivos(dos,dis, //EL SOCKET
+                        backendCliente.obtenerMultiplesArchivos(socketCliente, //EL SOCKET
                                 aplicacion.listaArchivosRemotosSeleccionados, //la lista de nombres de archivos seleccionados
-                                aplicacion.rutaActualArchivos, //la ruta remota actual de los archivos
+                                aplicacion.rutaActualArchivos, //la ruta actual de los archivos
                                 aplicacion.rutaDescargas); //la ruta local donde queremos que se guarde la descarga
                         
                         //NOTIFICAMOS QUE SE HAN DESCARGADO LOS ARCHIVOS
@@ -325,54 +367,28 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             ///////////////////////////EVENTOS PARA EL BOTÓN DE ELIMINAR ARCHIVO REMOTO//////////////////////////////////////////////////////////////////////////
             aplicacion.btnEliminarArchivoRemoto.addMouseListener(new MouseListener(){ //escucha activa
                public void mouseClicked(MouseEvent e){    
-                   
                    try {
-                       //OBTENEMOS LOS ÍNDICES DE LOS ELEMENTOS REMOTOS SELECCIONADOS POR EL USUARIO
-                       int[] hola =aplicacion.listaCarpetaRemota.getSelectedIndices();
                        
-                       //MOSTRAMOS EN EL LOG, LOS ARCHIVOS QUE SE COMPARTIRÁN
-                       aplicacion.logsCarpetaServidor.append("Preparándose para eliminar "+ hola.length+" archivos...\n");
+                       //ENVIAMOS LA PETICIÓN
+                       backendCliente.enviaPeticion(socketCliente,4); //petición 4= eliminar archivo remoto
                        
+                       //ENVIAMOS AL SERVER EL PATH DEL ARCHIVO QUE QUEREMOS ELIMINAR
+                       backendCliente.enviaPath(socketCliente, aplicacion.rutaActualArchivos+aplicacion.nombreElementoRemotoSeleccionado);
                        
-                       //ALMACENAMOS LOS NOMBRES DE ARCHIVOS SELECCIONADOS A ELIMINAR
-                       aplicacion.listaArchivosRemotosSeleccionados=new String [hola.length];
+                       //ACTUALIZAMOS EL LOG:
+                       aplicacion.logsCarpetaServidor.append("Archivo eliminado");
                        
-                       for(int i=0;i<hola.length ;i++){ //Guardamos los nombres de archivos a eliminar en un array de cadenas
-                           
-                               aplicacion.listaArchivosRemotosSeleccionados[i]=aplicacion.listaArchivos[hola[i]];
-                               
-                               //MOSTRAMOS EN EL LOG, LOS ARCHIVOS QUE SE VAN A ELIMINAR:
-                               aplicacion.logsCarpetaServidor.append("Preparándose para eliminar el archivo "+aplicacion.listaArchivosRemotosSeleccionados[i]+" \n");
-                               aplicacion.logsCarpetaCliente.append("Solicitando eliminar el archivo "+aplicacion.listaArchivosRemotosSeleccionados[i]+" \n");                                                              
-                       
-                       }
-                       
-                       
-                       //MANDAMOS A LLAMAR A LA FUNCIÓN QUE ELIMINARÁ LOS MÚLTIPLES ARCHIVOS QUE SE SELECCIONARON
-                       backendCliente.eliminarMultiplesArchivosRemotos(dos, //el dataoutput a usar
-                               aplicacion.listaArchivosRemotosSeleccionados, //el array con los nombres de los archivos remotos que se desean aliminar
-                                aplicacion.rutaActualArchivos); //la ruta remota actual
-                       
-                       
-                       
-                       //NOTIFICAMOS QUE SE HAN ELIMINADO LOS ARCHIVOS
-                       aplicacion.logsCarpetaServidor.append("Se han ELIMINADO "+ hola.length+" archivos\n");
-                       aplicacion.logsCarpetaCliente.append("Se han ELIMINADO "+ hola.length+" archivos\n");
-                       
-                        for(int i=0;i<hola.length ;i++){
-                            //ACTUALIZAMOS EL LISTADO DE LA CARPETA ACTUAL
-                            aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(dis);
-                            aplicacion.listaCarpetaRemota.setListData(aplicacion.listaArchivos);
-                        }                            
+                       //ACTUALIZAMOS EL LISTADO DE LA CARPETA ACTUAL
+                        aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(socketCliente);
+                        aplicacion.listaCarpetaRemota.setListData(aplicacion.listaArchivos);
                         
                        //Bloqueamos los botones de descargar y eliminar:
                        aplicacion.btnDescargarArchivo.setEnabled(false);
                        aplicacion.btnEliminarArchivoRemoto.setEnabled(false);
-                                              
+                       
                    } catch (IOException ex) {
                        Logger.getLogger(aplicacionCliente.class.getName()).log(Level.SEVERE, null, ex);
-                   }                                                                            
-                   
+                   }
                }
                
                //otros tipos de eventos
@@ -386,13 +402,13 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                     try {
                         
                         //ENVIAMOS LA PETICION
-                        backendCliente.enviaPeticion(dos,5); //petición 5= volver atrás (carpeta padre)
+                        backendCliente.enviaPeticion(socketCliente,5); //petición 5= volver atrás (carpeta padre)                        
                         
                         //Recibimos el nuevo path (el path del padre)
-                        aplicacion.rutaActualArchivos=backendCliente.obtener_path_remoto(dis);
+                        aplicacion.rutaActualArchivos=backendCliente.obtener_path_remoto(socketCliente);
                         
                         //OBTENEMOS LA LISTA DE LA NUEVA CARPETA
-                        aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(dis);
+                        aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(socketCliente);
                         
                         //ACTUALIZAMOS EL JLIST (LA LISTA MOSTRADA EN LA VENTANA)
                         aplicacion.listaCarpetaRemota.setListData(aplicacion.listaArchivos);
@@ -418,7 +434,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                     //Enviamos al servidor la petición de terminar la conexión
                     try {
                         //Enviamos al servidor la petición de terminar la conexión
-                        backendCliente.enviaPeticion(dos,6); //peticion 6= cerrar conexión
+                        backendCliente.enviaPeticion(socketCliente,6); //peticion 6= cerrar conexión
 
                         System.out.println("Conexión finalizada");
                     } catch (IOException ex) {
@@ -431,8 +447,6 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                     //cerramos el socket
                     try {
                         //cerramos el socket
-                        dos.close();
-                        dis.close();
                         socketCliente.close();
                         System.out.println("SOCKET CERRADO");
                     } catch (IOException ex) {
@@ -452,7 +466,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                 public void windowClosing(WindowEvent we){
                     try {
                         //Enviamos al servidor la petición de terminar la conexión
-                        backendCliente.enviaPeticion(dos,6);
+                        backendCliente.enviaPeticion(socketCliente,6);
                         System.out.println("Conexión finalizada");
                     } catch (IOException ex) {
                         Logger.getLogger(aplicacionCliente.class.getName()).log(Level.SEVERE, null, ex);
@@ -462,8 +476,6 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
 
                     try {
                         //cerramos el socket
-                        dis.close();
-                        dos.close();
                         socketCliente.close();
                         System.out.println("SOCKET CERRADO");
                     } catch (IOException ex) {
@@ -478,19 +490,18 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                 public void mouseClicked(MouseEvent e){    
                     //esto se hace de manera local, no necesita mandar petición al servidor
                     
-                    //Obtenemos la ruta padre del archivo local seleccionadopor cada archivo seleccionado
-                    for(String nombreArchivoLocalSeleccionado: aplicacion.nombresArchivoLocalSeleccionado){
-                        String carpetaActual=new File(nombreArchivoLocalSeleccionado).getParent();
-
-                        //MANDAMOS A ELIMINAR:
-                        backendCliente.eliminarArchivoLocal(nombreArchivoLocalSeleccionado);
-
-                        //ACTUALIZAMOS EL LOG:
-                        aplicacion.logsCarpetaCliente.append("Archivo eliminado: "+nombreArchivoLocalSeleccionado+"\n");
-                        //ACTUALIZAMOS EL JFILECHOOSER
-                        aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File("./"));
-                        aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File(carpetaActual));
-                    }
+                    //Obtenemos la ruta padre del archivo local seleccionado
+                    String carpetaActual=new File(aplicacion.nombreArchivoLocalSeleccionado).getParent();
+                    
+                    //MANDAMOS A ELIMINAR:
+                    backendCliente.eliminarArchivoLocal(aplicacion.nombreArchivoLocalSeleccionado);
+                    
+                    //ACTUALIZAMOS EL LOG:
+                    aplicacion.logsCarpetaCliente.append("Archivo eliminado: "+aplicacion.nombreArchivoLocalSeleccionado+"\n");
+                    
+                    //ACTUALIZAMOS EL JFILECHOOSER                                                  
+                    aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File("./"));                    
+                    aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File(carpetaActual));
                     
                 }
                 
@@ -504,6 +515,13 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
     }//termina main
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
 
+     
+     
+     
+     
+     
+     
+     
     //Constructor de la Interfaz gráfica (solo la inicializa)///////////////////////////////////////////////////////////////////////////
     public aplicacionCliente(Dimension dimVentana){ //se recibe la dimensión de la ventana                   
                 
@@ -537,7 +555,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                 
                 divCarpetaRemota.add(tituloRemota);                
                     divScrollRemota=new JScrollPane(); //panel con scroll (cuando rebasa los límites)                                        
-                    listaCarpetaRemota=new JList<>();
+                    listaCarpetaRemota=new JList();                                   
                     divCarpetaRemota.add(divScrollRemota);                        
                         listaCarpetaRemota.setMaximumSize(new Dimension(5000,5000));
                         divScrollRemota.setViewportView(listaCarpetaRemota);
@@ -629,8 +647,8 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                 divCarpetaLocal.add(tituloLocal);  
                 
                 navegadorCarpetaLocal= new JFileChooser();//selector de archivo
-                navegadorCarpetaLocal.setMultiSelectionEnabled(true); //
-                navegadorCarpetaLocal.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES); //PARA PODER SELECCIONAR ARCHIVOS Y 
+                navegadorCarpetaLocal.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                navegadorCarpetaLocal.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
                 divCarpetaLocal.add(navegadorCarpetaLocal);
                     
             

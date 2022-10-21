@@ -16,10 +16,11 @@ import java.net.Socket;
 
 public class ServidorSA {
    
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException{
 
         //Definición de la carpeta raíz del servidor
         final String rutaCarpetaServerRaiz="."+System.getProperty("file.separator")+"archivosServidor"+System.getProperty("file.separator"); //Ruta (constant)de la carpeta del servidor
+        
         
         File directorioServer=new File(rutaCarpetaServerRaiz);        
         directorioServer.mkdir();//SI NO EXISTE LA CARPETA DEL SERVIDOR, LA CREAMOS                                 
@@ -42,8 +43,6 @@ public class ServidorSA {
                 
                 //Esperamos a que un cliente solicite conexión al servidor 
                 Socket cliente = servidor.accept(); //
-                DataOutputStream dos = new DataOutputStream(cliente.getOutputStream());
-                DataInputStream dis = new DataInputStream(cliente.getInputStream());
                 
                 //Imprimimos que se ha aceptado la conexión
                 System.out.println("Cliente conectado desde "+cliente.getInetAddress()+":"+cliente.getPort()); 
@@ -53,142 +52,124 @@ public class ServidorSA {
                 
                 
                 //Enviamos la ruta ruta de navegación al cliente
-                envia_path_remoto(dos, rutaNavActualCliente);
+                envia_path_remoto(cliente, rutaNavActualCliente);
                         
                 ///Enviamos la lista de nombres de archivos de la carpeta del servidor
-                envia_ls_remoto(dos, rutaNavActualCliente);
+                envia_ls_remoto(cliente, rutaNavActualCliente);
                                                 
-                int peticion;//para identificar la petición
+                int peticion=0;//para identificar la petición
                 /*                    
                     0:conexión iniciada
                     1: Abrir carpeta hija
                     2: Subir archivos/carpetas
                     3: Descargar archivos/carpetas
-                    4. Eliminar archivos /carpetas remotas
+                    4. Eliminar  archivos /carpetas remotas
                     5. Volver a la carpeta padre
                     6. Salir (cerrar conexión cliente-servidor)
+                
                     7. Crear carpeta vacia en remoto (nueva)
                 */
                 
                 //CICLO PARA MANTENER CONEXIÓN CON EL CLIENTE QUE SE HA CONECTADO////////////////////////                                                            
-                label:
                 while(true){
                     //CUANDO EL CLIENTE ELIGE CERRAR LA CONEXIÓN (O CIERRA LA VENTANA), ESTE CICLO SE ROMPE
                     
                     //Leemos la petición que envia el cliente
-                    peticion=recibePeticion(dis); //se queda esperando a recibir la petición por parte del cliente
-
-                    switch (peticion) {
-                        case 0:
-
-                            break;
-                        case 1:  //Listar contenido de una carpeta abierta
-                            System.out.println("Cliente ha solicitado abrir una carpeta");
-
-                            //recibimos la dirección de la carpeta que se quiere listar
-                            rutaNavActualCliente = recibePath(dis); //actualizamos la ruta en la que se encuentra el cliente
-                            System.out.println(rutaNavActualCliente);
-                            //le mandamos la lista de archivos al abrir esa carpeta
-                            envia_ls_remoto(dos, rutaNavActualCliente);
-                            break;
-                        case 2:
-                            System.out.println("Cliente ha solicitado subir un archivo/carpeta");
-
-                            //RECIBIMOS EL ARCHIVO EN LA CARPETA ACTUAL
-                            obtenerArchivo(dis, rutaNavActualCliente);
-
-                            //LE MANDAMOS LA ACTUALIZACIÓN DEL LISTADO DE LA CARPETA ACTUAL
-                            envia_ls_remoto(dos, rutaNavActualCliente);
-
-                            break;
-                        case 3: {
-                            System.out.println("Cliente ha solicitado descargar un archivo/carpeta");
-
-
-                            //recibimos la dirección del archivo que el cliente desea
-                            String direccionArchivo = recibePath(dis);
-                            File archivoSolicitado = new File(direccionArchivo); //Abrimos el archivo deseado
-
-
-                            //Le mandamos al cliente el archivo que solicitó
-                            enviaArchivo(dos, archivoSolicitado);
-
-
-                            break;
+                    peticion=recibePeticion(cliente); //se queda esperando a recibir la petición por parte del cliente                    
+                    
+                    if(peticion==0){ 
+                        
+                    }else if(peticion==1){ //Listar contenido de una carpeta abierta
+                        System.out.println("Cliente ha solicitado abrir una carpeta");
+                        
+                        //recibimos la dirección de la carpeta que se quiere listar                           
+                        rutaNavActualCliente=recibePath(cliente); //actualizamos la ruta en la que se encuentra el cliente
+                        
+                        System.out.println(rutaNavActualCliente);
+                        
+                        //le mandamos la lista de archivos al abrir esa carpeta
+                        envia_ls_remoto(cliente,rutaNavActualCliente);                                                                                                
+                        
+                        
+                    } else if(peticion==2){
+                        System.out.println("Cliente ha solicitado subir un archivo/carpeta");
+                        
+                        //RECIBIMOS EL ARCHIVO EN LA CARPETA ACTUAL                        
+                        obtenerArchivo(cliente,rutaNavActualCliente);
+                        
+                        //LE MANDAMOS LA ACTUALIZACIÓN DEL LISTADO DE LA CARPETA ACTUAL
+                        envia_ls_remoto(cliente, rutaNavActualCliente);
+                        
+                    } else if(peticion==3){                        
+                        System.out.println("Cliente ha solicitado descargar un archivo/carpeta");  
+                        
+                        
+                        //recibimos la dirección del archivo que el cliente desea
+                        String direccionArchivo=recibePath(cliente); 
+                        File archivoSolicitado = new File(direccionArchivo); //Abrimos el archivo deseado
+                        
+                        //Le mandamos al cliente el archivo que solicitó
+                        enviaArchivo(cliente,archivoSolicitado); 
+                                             
+                        
+                        
+                    } else if(peticion==4){
+                        System.out.println("Cliente ha solicitado eliminar un archivo/carpeta");                        
+                        
+                        //Recibimos el path del elemento que se desea borrar
+                        String direccionArchivo=recibePath(cliente); 
+                        
+                        //ELIMINAMOS EL ARCHIVO
+                        eliminarArchivo(direccionArchivo);
+                        
+                        //ACTUALIZAMOS Y MANDAMOS LA LISTA DE ARCHIVOS
+                        envia_ls_remoto(cliente, rutaNavActualCliente);
+                        
+                    }else if(peticion==5){
+                        
+                        //si la actual es igual a la original, entonces no puede volver hacia atrás                        
+                        System.out.println("Cliente ha solicitado volver a la carpeta de atrás (padre)");                        
+                                                
+                        //Verificamos que no supere a la ruta inicial (rutaCarpetaServer)
+                        if(rutaNavActualCliente.equals(rutaCarpetaServerRaiz)){// si es igual a la inicial, no puede subir de nivel
+                            //la mantenemos en el mismo
+                            rutaNavActualCliente=rutaCarpetaServerRaiz;
+                        }else{
+                            //Si la ruta a la que se quiere volver es de menor nivel que la raíz, entonces sí podemos subir de nivel                            
+                            //Obtenemos el padre y actualizamos la ruta actual a esa carpeta                                                                     
+                            rutaNavActualCliente=new File(rutaNavActualCliente).getParent()+System.getProperty("file.separator"); //actualizamos la ruta en la que se encuentra el cliente                                                
                         }
-                        case 4: {
-                            System.out.println("Cliente ha solicitado eliminar un archivo/carpeta");
-
-                            //Recibimos el path del elemento que se desea borrar
-                            String direccionArchivo = recibePath(dis);
-
-                            //ELIMINAMOS EL ARCHIVO
-                            eliminarArchivo(direccionArchivo);
-
-                            //ACTUALIZAMOS Y MANDAMOS LA LISTA DE ARCHIVOS
-                            envia_ls_remoto(dos, rutaNavActualCliente);
-
-                            break;
-                        }
-                        case 5:
-
-                            //si la actual es igual a la original, entonces no puede volver hacia atrás
-                            System.out.println("Cliente ha solicitado volver a la carpeta de atrás (padre)");
-
-                            //Verificamos que no supere a la ruta inicial (rutaCarpetaServer)
-                            if (rutaNavActualCliente.equals(rutaCarpetaServerRaiz)) {// si es igual a la inicial, no puede subir de nivel
-                                //la mantenemos en el mismo
-                                rutaNavActualCliente = rutaCarpetaServerRaiz;
-                            } else {
-                                //Si la ruta a la que se quiere volver es de menor nivel que la raíz, entonces sí podemos subir de nivel
-                                //Obtenemos el padre y actualizamos la ruta actual a esa carpeta
-                                rutaNavActualCliente = new File(rutaNavActualCliente).getParent() + System.getProperty("file.separator"); //actualizamos la ruta en la que se encuentra el cliente
-
-                            }
-
-
-                            //Enviamos el nuevo path (el del padre)
-                            envia_path_remoto(dos, rutaNavActualCliente);
-                            System.out.println("ruta actual: " + rutaNavActualCliente);
-
-
-                            //Enviamos el listado
-                            envia_ls_remoto(dos, rutaNavActualCliente);
-
-
-                            break;
-                        case 6:
-
-                            //cuando el cliente cierra la ventana, el servidor recibe la petición 6
-                            System.out.println("Cliente ha solicitado cerrar la conexión");
-                            dis.close();
-                            dos.close();
-                            cliente.close();
-                            System.out.println("Conexión finalizada ");
-                            break label;//para romper el ciclo y dejar de atender al cliente actual
-
-                        case 7:  //Peticion agregada en la nueva actualizacion
-
-                            System.out.println("Cliente ha solicitado crear una carpeta");
-                            
-                            //Cuando el cliente desea subir una carpeta, entonces debe crearse dicha carpeta en el servidor
-                            //(Se crea vacía)
-                            String nombre = recibePath(dis); //se recibe el nombre de la carpeta que se desea crear
-                            System.out.println(nombre);
-                            File carpeta = new File(nombre);
-                            //sin la diagonal (separador)
-
-                            if (carpeta.mkdir())
-                                System.out.println("Directorio creado en local");
-                            else
-                                System.out.println("Error !");
-                            envia_ls_remoto(dos, rutaNavActualCliente);
-                            //Recibimos el nombre de la carpeta
-                            //Creamos la carpeta:
-                            break;
+                        
+                        
+                        //Enviamos el nuevo path (el del padre)
+                        envia_path_remoto(cliente,rutaNavActualCliente);
+                        System.out.println("ruta actual: "+rutaNavActualCliente);
+                        
+                        
+                        //Enviamos el listado
+                        envia_ls_remoto(cliente,rutaNavActualCliente);
+                        
+                        
+                    } else if(peticion==6){ 
+                        
+                        //cuando el cliente cierra la ventana, el servidor recibe la petición 6
+                        System.out.println("Cliente ha solicitado cerrar la conexión");
+                        break;//para romper el ciclo y dejar de atender al cliente actual
+                        
+                    }else if(peticion==7){ //Peticion agregada en la nueva actualizacion
+                        
+                        //Cuando el cliente desea subir una carpeta, entonces debe crearse dicha carpeta en el servidor
+                        //(Se crea vacía)
+                        
+                        //Recibimos el nombre de la carpeta
+                        
+                        //Creamos la carpeta:
+                        
+                        //Actualizamos y mandamos la lista de archivos
+                                                                        
                     }
-
-                }
+                    
+                }     
                 //TERMINA CONEXIÓN CON DICHO CLIENTE /////////////////////////////////////////////////////////////////////
                 
                 cliente.close();//cerrarmos el socket que el cliente ha usado
@@ -211,18 +192,22 @@ public class ServidorSA {
     
     
     ////////////////FUNCIÓN PARA RECIBIR UN NÚMERO QUE IDENTIFICA A LA PETICIÓN DESEADA
-    public static int recibePeticion(DataInputStream dis) throws IOException{ //recibe la petición que el cliente envía a través del socket
+    public static int recibePeticion(Socket socket) throws IOException{ //recibe la petición que el cliente envía a través del socket
         int peticion;
+        DataInputStream dis = new DataInputStream(socket.getInputStream());
         peticion=dis.readInt();   
-
+        
+        
         return peticion;
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
     ////FUNCIÓN PARA RECIBIR DEL CLIENTE UNA DIRECCIÓN DE UN ARCHIVO
-    public static String recibePath(DataInputStream dis) throws IOException{ //recibe del cliente el path del archivo/carpeta que se desea manipular
+    public static String recibePath(Socket socket) throws IOException{ //recibe del cliente el path del archivo/carpeta que se desea manipular
         String pathTemp;
+        DataInputStream dis = new DataInputStream(socket.getInputStream());
         pathTemp= dis.readUTF();//se lee del buffer
+        
         
         return pathTemp;
     }
@@ -231,7 +216,8 @@ public class ServidorSA {
     
     
     ////////////////FUNCIÓN PARA ENVIAR AL CLIENTE EL PATH DE UNA CARPETA ALOJADA EN EL SERVIDOR////////////////////////////////////// 
-    public static void envia_path_remoto(DataOutputStream dos, String path) throws IOException{ //envia el path de la carpeta que se va a listar
+    public static void envia_path_remoto(Socket socket, String path) throws IOException{ //envia el path de la carpeta que se va a listar
+         DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
          dos.writeUTF(path);
          dos.flush();
          
@@ -239,7 +225,9 @@ public class ServidorSA {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     ////////////////FUNCIÓN PARA ENVIAR AL CLIENTE LA LISTA DE ARCHIVOS QUE SE ENCUENTRAN  EN DETERMINADA CARPETA ALOJADA EN EL SERVIDOR////////////////////////////////////// 
-    public static void envia_ls_remoto(DataOutputStream dos,String path) throws IOException{ //ENVIA LS REMOTO, DADO UN PATH DENTRO DEL SERVER
+    public static void envia_ls_remoto(Socket socket,String path) throws IOException{ //ENVIA LS REMOTO, DADO UN PATH DENTRO DEL SERVER
+        
+        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
         File localFiles = new File(path);
         File[] listaArchivos = localFiles.listFiles();
         String nombre;
@@ -250,8 +238,10 @@ public class ServidorSA {
         dos.flush();
 
         for(File file: listaArchivos){
-
-            esDir = file.isDirectory();
+            esDir = false;
+            if(file.isDirectory()){
+                esDir = true;
+            }
             nombre=file.getName();
 
             dos.writeBoolean(esDir);
@@ -264,13 +254,14 @@ public class ServidorSA {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
     //Función para enviar archivo al cliente////////////////////////////////////////////////////////////////////
-    public static void enviaArchivo(DataOutputStream dos, File file) throws IOException {
+    public static void enviaArchivo(Socket socket, File file) throws IOException {
         long file_length = file.length();
         String nombre_archivo = file.getName();
         String path = file.getPath();
 
         System.out.println("Preparandose pare enviar archivo "+path+"\n\n");
 
+        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
         DataInputStream dis = new DataInputStream(new FileInputStream(path));
         dos.writeUTF(nombre_archivo);//Se envía el nombre del archivo
         dos.flush();
@@ -278,7 +269,7 @@ public class ServidorSA {
         dos.flush();
 
         long enviados = 0;
-        int l,porcentaje;
+        int l=0,porcentaje=0;
         while(enviados<file_length){//Se utiliza la longitud del archivo
             byte[] b = new byte[1500];
             l=dis.read(b);
@@ -292,20 +283,22 @@ public class ServidorSA {
         }//while
 
         System.out.println("\nArchivo enviado..");
-        dis.close();
+
         
     }
     /////////////////////////////////////////////////////////////////////////////////////////
     
     ////Función para recibir archivo (obtener archivo que el cliente envía)////////////////////////////////////////////////////////////    
-    public static void obtenerArchivo(DataInputStream dis, String ruta_archivo) throws IOException {
+    public static void obtenerArchivo(Socket socket, String ruta_archivo) throws IOException {  
         //ruta_archivo es la carpeta del servidor en donde se guardará el archivo que ha enviado el cliente
+        
+        DataInputStream dis = new DataInputStream(socket.getInputStream());
         String nombre = dis.readUTF();
         long tam = dis.readLong();//Se obtiene el tamaño
         System.out.println("Comienza descarga del archivo "+nombre+" de "+tam+" bytes\n\n");
         DataOutputStream dos = new DataOutputStream(new FileOutputStream(ruta_archivo+nombre));
         long recibidos=0;//
-        int l, porcentaje;
+        int l=0, porcentaje=0;
         while(recibidos<tam){
             byte[] b = new byte[1500];
             l = dis.read(b);
@@ -316,7 +309,7 @@ public class ServidorSA {
             porcentaje = (int)((recibidos*100)/tam);
             System.out.print("\rRecibido el "+ porcentaje +" % del archivo");
         }//while
-        dos.close();
+        
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////
     

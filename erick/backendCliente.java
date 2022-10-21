@@ -17,8 +17,6 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 public class backendCliente {
@@ -272,31 +270,4 @@ public class backendCliente {
         }//if
     }
     /////////////////////////////////////////////////////////////////////////////////////////
-    
-    
-    //Función para eliminar multiples archivos REMOTOS seleccionados//////////////////////////////////////////////////////
-    public static void eliminarMultiplesArchivosRemotos(DataOutputStream dos, String [] listaArchivos, String rutaActualArchivos){
-        try {
-            
-            for(int i=0; i<listaArchivos.length;i++){
-                //Archivo a eliminar
-                String archivoAEliminar=listaArchivos[i];
-                System.out.println("Eliminando el archivo"+archivoAEliminar+"\n");
-                
-                //ENVIAMOS LA PETICIÓN PARA ELIMINACION DE ARCHIVO
-                enviaPeticion(dos,4); //petición 4= eliminar archivo remoto                                
-                
-                //ENVIAMOS AL SERVER EL PATH DEL ARCHIVO QUE QUEREMOS ELIMINAR
-                enviaPath(dos, rutaActualArchivos + archivoAEliminar);
-                                                
-            }
-                               
-            
-        } catch (IOException ex) {
-            Logger.getLogger(backendCliente.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
-    /////////////////////////////////////////////////////////////////////////////////////////
-    
 }

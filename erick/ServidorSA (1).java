@@ -170,10 +170,9 @@ public class ServidorSA {
                         case 7:  //Peticion agregada en la nueva actualizacion
 
                             System.out.println("Cliente ha solicitado crear una carpeta");
-                            
                             //Cuando el cliente desea subir una carpeta, entonces debe crearse dicha carpeta en el servidor
                             //(Se crea vacía)
-                            String nombre = recibePath(dis); //se recibe el nombre de la carpeta que se desea crear
+                            String nombre = recibePath(dis);
                             System.out.println(nombre);
                             File carpeta = new File(nombre);
                             //sin la diagonal (separador)

@@ -19,16 +19,18 @@ import java.util.logging.Logger;
 public class aplicacionCliente extends JFrame { //Hereda métodos existentes en la clase JFrame       
     
     //ATRIBUTOS PARA GUARDAR INFORMACIÓN DE LA INTERACCIÓN DEL CLIENTE 
-        String nombreElementoRemotoSeleccionado; //PARA GUARDAR EL NOMBRE DEL ARCHIVO REMOTO SELECCIONADO POR EL USUARIO   
-        String[] nombresArchivoLocalSeleccionado;   //PARA GUARDAR EL NOMBRE DEL ARCHIVO LOCAL SELECCIONADO POR EL USUARIO
-        String [] listaArchivosRemotosSeleccionados; //PARA GUARDAR CUANDO LA SELECCIÓN DE ARCHIVOS REMOTOS ES MÚLTIPLE
-
+       String nombreElementoRemotoSeleccionado; //PARA GUARDAR EL NOMBRE DEL ARCHIVO REMOTO SELECCIONADO POR EL USUARIO           
+       String  listaArchivosRemotosSeleccionados[]; //PARA GUARDAR CUANDO LA SELECCIÓN DE ARCHIVOS REMOTOS ES MÚLTIPLE        
+       
+       File  archivosLocalesSeleccionados[]; //Para guardar los archivos seleccionados en el JFILECHOOSER
+        
+               
 
     //ruta local a donde se van a ir los archivos descargados
         final String rutaDescargas="."+System.getProperty("file.separator")+"archivosDescargados"+System.getProperty("file.separator"); 
         
         String rutaActualArchivos; //la ruta de la carpeta remota que se muestra en la pantalla del cliente
-        String [] listaArchivos; //la lista que se despliega en pantalla
+        String listaArchivos []; //la lista que se despliega en pantalla
         
         
     /////////////////////ATRIBUTOS/ELEMENTOS DE LA INTERFAZ GRÁFICA////////////////////////////////////////////////////////////////////////
@@ -172,19 +174,26 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             //////////////////////////////////////EVENTOS PARA EL JFILECHOOSER ////////////////////////////////////////////////////
             aplicacion.navegadorCarpetaLocal.addActionListener(new ActionListener() {
                public void actionPerformed(ActionEvent evento) {
-                    
-                     
-                    String command = evento.getActionCommand();
-                    
-                   if (command.equals(JFileChooser.APPROVE_SELECTION)) {
-                       File[] archivosSeleccionados=aplicacion.navegadorCarpetaLocal.getSelectedFiles();
-                       int cantidadArchSeleccionados=archivosSeleccionados.length;
-                       aplicacion.logsCarpetaCliente.append("Se han seleccinado"+cantidadArchSeleccionados+"\n");
-                       System.out.println("Se han seleccinado"+cantidadArchSeleccionados+"\n");
-
-                       //Una vez que se ha elegido un archivo, ya se pueden activar los botones para realizar determinada acción
-                       aplicacion.btnEliminarArchivoLocal.setEnabled(true);
-                       aplicacion.btnSubirArchivo.setEnabled(true);
+                                         
+                   
+                   String command = evento.getActionCommand();
+                   
+                  if (command.equals(JFileChooser.APPROVE_SELECTION)) {
+                      
+                      
+                     //Obtenemos un arreglo con los archivos uque han sido seleeccionados con el JFILECHOOSER
+                      aplicacion.archivosLocalesSeleccionados= aplicacion.navegadorCarpetaLocal.getSelectedFiles();
+                          
+                       //Indicamos la cantidad de elementos seleccionados
+                       aplicacion.logsCarpetaCliente.append("Se han seleccionado "+aplicacion.archivosLocalesSeleccionados.length+" archivos\n");
+                       System.out.println("Se han seleccionado "+aplicacion.archivosLocalesSeleccionados.length+" archivos\n");                     
+                       
+                       
+                        aplicacion.btnSubirArchivo.setEnabled(true);
+                                                                    
+                        aplicacion.btnEliminarArchivoLocal.setEnabled(true);         
+                                                                                                                                         
+                       
 
                    }  else if (command.equals(JFileChooser.CANCEL_SELECTION)) {                    
                        
@@ -473,25 +482,26 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             });
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             
-            ///////////////////////////EVENTOS PARA EL BOTÓN DE ELIMINAR ARCHIVO LOCAL//////////////////////////////////////////////////////////////////////////
+            ///////////////////////////EVENTOS PARA EL BOTÓN DE ELIMINAR ARCHIVOS LOCALES//////////////////////////////////////////////////////////////////////////
             aplicacion.btnEliminarArchivoLocal.addMouseListener(new MouseListener(){ //escucha activa
                 public void mouseClicked(MouseEvent e){    
                     //esto se hace de manera local, no necesita mandar petición al servidor
+                                                            
+                    //Obtenemos la ruta padre del archivo local seleccionado
+                    String carpetaActual=aplicacion.archivosLocalesSeleccionados[0].getParent();
+                                        
                     
-                    //Obtenemos la ruta padre del archivo local seleccionadopor cada archivo seleccionado
-                    for(String nombreArchivoLocalSeleccionado: aplicacion.nombresArchivoLocalSeleccionado){
-                        String carpetaActual=new File(nombreArchivoLocalSeleccionado).getParent();
-
-                        //MANDAMOS A ELIMINAR:
-                        backendCliente.eliminarArchivoLocal(nombreArchivoLocalSeleccionado);
-
+                    //MANDAMOS A ELIMINAR CADA UNO DE LOS ARCHIVOS EN EL ARREGLO:
+                    for(int i=0;i<aplicacion.archivosLocalesSeleccionados.length;i++){
+                        String nombreArchivo=aplicacion.archivosLocalesSeleccionados[i].getPath();
+                        backendCliente.eliminarArchivoLocal(nombreArchivo);
                         //ACTUALIZAMOS EL LOG:
-                        aplicacion.logsCarpetaCliente.append("Archivo eliminado: "+nombreArchivoLocalSeleccionado+"\n");
-                        //ACTUALIZAMOS EL JFILECHOOSER
-                        aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File("./"));
-                        aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File(carpetaActual));
+                        aplicacion.logsCarpetaCliente.append("Archivo eliminado: "+nombreArchivo+"\n");
                     }
-                    
+                                                                                                    
+                    //ACTUALIZAMOS EL JFILECHOOSER                                                  
+                    aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File("./"));                    
+                    aplicacion.navegadorCarpetaLocal.setCurrentDirectory(new File(carpetaActual));
                 }
                 
                 //otros tipos de eventos

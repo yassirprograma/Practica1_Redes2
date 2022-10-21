@@ -251,7 +251,7 @@ public class backendCliente {
                 }
                 child.delete();
             }
-        }
+        }        
         file.delete(); // Se Elimina el directorio padre
     }
     /////////////////////////////////////////////////////////////////////////////////////////
@@ -265,9 +265,9 @@ public class backendCliente {
             eliminarDirectorioLocal(temp);
         }else{
             if(temp.delete()){
-                System.out.println("Elemento eliminado\n");
+                System.out.println("Elemento eliminado "+temp.getName()+"\n");
             }else{
-                System.out.println("No se pudo eliminar elemento \n");
+                System.out.println("No se pudo eliminar el elemento " +temp.getName()+"\n");
             }//if
         }//if
     }
@@ -275,7 +275,7 @@ public class backendCliente {
     
     
     //Función para eliminar multiples archivos REMOTOS seleccionados//////////////////////////////////////////////////////
-    public static void eliminarMultiplesArchivosRemotos(DataOutputStream dos, String [] listaArchivos, String rutaActualArchivos){
+    public static void eliminarMultiplesArchivosRemotos(DataOutputStream dos, String listaArchivos[], String rutaActualArchivos){
         try {
             
             for(int i=0; i<listaArchivos.length;i++){

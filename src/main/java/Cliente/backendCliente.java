@@ -93,23 +93,48 @@ public class backendCliente {
         return temp;
     }
     ///////////////////////////////////////////////////////////////////////////////////////
+    
+    ////Función para obtener archivo del servidor////////////////////////////////////////////////////////////
+    public static void obtenerArchivo(DataInputStream dis, String ruta_archivo) throws IOException {
+        //la ruta_archivo es de la carpeta en donde se guardará el archivo obtenido/descargado
+        String nombre = dis.readUTF();
 
+        long tam = dis.readLong();//Se obtiene el tamaño
+
+        System.out.println("Comienza descarga del archivo "+nombre+" de "+tam+" bytes\n\n");
+        DataOutputStream dos = new DataOutputStream(new FileOutputStream(ruta_archivo+nombre));
+        long recibidos=0;//
+        int l, porcentaje;
+        while(recibidos<tam){
+            byte[] b = new byte[1500];
+            l = dis.read(b);
+            System.out.println("leidos: "+l);
+            dos.write(b,0,l);
+            dos.flush();
+            recibidos = recibidos + l;
+            porcentaje = (int)((recibidos*100)/tam);
+            System.out.println("\rRecibido el "+ porcentaje +" % del archivo");
+        }//while
+        System.out.println("\nTransmisión finalizada \n");
+        dos.close();
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////////
 
     ////Función para obtener múltiples archivos/////////////////////////////////////////////////////////////
     //Es recursiva, entonces puede descargar carpetas con otras carpetas o archivos dentro (puede descargar arbol de archivos
     public static void obtenerMultiplesArchivos(DataOutputStream dos, DataInputStream dis, String[] listaArchivos, String rutaActualArchivosRemotos, String rutaLocalGuardado ) throws IOException{
         //Esta función recibe el socket, la lista de archivos seleccionados, la ruta padre de los archivos seleccionados, y la ruta donde queremos que se guarden los archivos obtenidos
 
-        for (String listaArchivo : listaArchivos) {
+        for (String archivo : listaArchivos) {
             //POR CADA ARCHIVO/carpeta
 
             //VERIFICAMOS SI ES CARPETA O ARCHIVO
-            if (listaArchivo.endsWith(System.getProperty("file.separator"))) {
+            if (archivo.endsWith(System.getProperty("file.separator"))) {
                 //Si termina con /, entonces es carpeta y se debe hacer lo siguiente:
 
                 //SOLICITAMOS ABRIR ESA CARPETA REMOTA
                 //Nombre de la carpeta remota a descargar:
-                String nameCarpetaADescargar = listaArchivo;
+                String nameCarpetaADescargar = archivo;
 
                 //Generamos la dirección, según el nombre de la carpeta seleccionada y el path que conocemos
                 String rutaCarpeta = rutaActualArchivosRemotos + nameCarpetaADescargar;
@@ -164,7 +189,7 @@ public class backendCliente {
                 enviaPeticion(dos, 3); //petición 3= descargar archivo
 
                 //Nombre del elemento remoto a descargar
-                String nameElementoADescargar = listaArchivo;
+                String nameElementoADescargar = archivo;
 
                 //ENVIAMOS AL SERVER EL PATH DEL ARCHIVO QUE DESEAMOS  DESCARGAR
                 enviaPath(dos, rutaActualArchivosRemotos + nameElementoADescargar);
@@ -177,32 +202,10 @@ public class backendCliente {
     ///////////////////////////////////////////////////////////////////////////////////////
 
 
-    ////Función para obtener archivo del servidor////////////////////////////////////////////////////////////
-    public static void obtenerArchivo(DataInputStream dis, String ruta_archivo) throws IOException {
-        //la ruta_archivo es de la carpeta en donde se guardará el archivo obtenido/descargado
-        String nombre = dis.readUTF();
+    
 
-        long tam = dis.readLong();//Se obtiene el tamaño
-
-        System.out.println("Comienza descarga del archivo "+nombre+" de "+tam+" bytes\n\n");
-        DataOutputStream dos = new DataOutputStream(new FileOutputStream(ruta_archivo+nombre));
-        long recibidos=0;//
-        int l, porcentaje;
-        while(recibidos<tam){
-            byte[] b = new byte[1500];
-            l = dis.read(b);
-            System.out.println("leidos: "+l);
-            dos.write(b,0,l);
-            dos.flush();
-            recibidos = recibidos + l;
-            porcentaje = (int)((recibidos*100)/tam);
-            System.out.println("\rRecibido el "+ porcentaje +" % del archivo");
-        }//while
-        System.out.println("\nTransmisión finalizada \n");
-        dos.close();
-    }
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-
+    
+    
     //Función para enviar archivo al servidor a través de un socket//////////////////////////////////////////
     public static void enviaArchivo(DataOutputStream dos, File file) throws IOException {
         ///file es el archivo que se va a enviar
@@ -239,7 +242,56 @@ public class backendCliente {
 
     }
     /////////////////////////////////////////////////////////////////////////////////////////
-
+    
+    //Función para enviar multiples archivos y/o carpetas//////////////////////////////////////////
+    
+    public static void enviaMultiplesArchivos(DataOutputStream dos, DataInputStream dis, File archivosAEnviar[], String rutaActual) throws IOException{
+        
+        for(int i=0;i<archivosAEnviar.length;i++){
+            File archivo=archivosAEnviar[i];
+            
+            if(archivo.isFile()){ //si es archivo (caso base), lo enviamos directo
+                //ENVIAMOS LA PETICIÓN AL SERVIDOR
+                enviaPeticion(dos,2); //petición 2= subir archivo
+                                                             
+                //ENVIAMOS EL ARCHIVO INDIVIDUAL                       
+                enviaArchivo(dos, archivo);
+                
+                //Obtenemos ls remoto
+                obtener_ls_remoto(dis);
+                
+                
+            }else { //si es carpeta (caso recursivo)
+                //Pedimos al server que cree una carpeta
+                    enviaPeticion(dos,7); //petición 2= subir archivo
+                    enviaPath(dos, archivo.getName()); //Enviamos al servidor el nombre de la carpeta a crear
+                    
+                //Pedimos al servidor que se posicione dentro de ella
+                    enviaPeticion(dos,1); //peticion para abrir una carpeta
+                    rutaActual=rutaActual+archivo.getName()+System.getProperty("file.separator"); //ruta de la carpeta creada del lado del servidor
+                    enviaPath(dos, rutaActual); //enviamos el path de la carpeta que queremos abrir                                      
+                    obtener_ls_remoto(dis);
+                    
+                 //Obtenemos los archivos hijos de la carpeta (del lado del cliente)   
+                    File hijosCarpeta[]=archivo.listFiles(); //obtenemos los archivos y subcarpetas pertenecientes a la carpeta
+                    
+                 //Mandamos a llamar a la función recursivamente, pero ahora con la tarea de vaciar los hijos de la carpeta
+                    enviaMultiplesArchivos(dos, dis, hijosCarpeta, rutaActual);
+                    
+                 //Salir de la carpeta
+                    enviaPeticion(dos,5); //peticion para salir de la carpeta
+                    rutaActual=obtener_path_remoto(dis); //actualizamos la ruta actual
+                    obtener_ls_remoto(dis);
+                 
+                    
+            }
+        }
+            
+            
+    }
+    
+    
+    /////////////////////////////////////////////////////////////////////////////////////////
 
     ///Función para eliminar un directorio local//////////////
     public static void eliminarDirectorioLocal(File file){

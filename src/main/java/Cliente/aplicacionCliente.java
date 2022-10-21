@@ -266,14 +266,39 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             ///////////////////////////EVENTTOS PARA EL BOTÓN DE SUBIR ARCHIVO//////////////////////////////////////////////////////////////////////////
             aplicacion.btnSubirArchivo.addMouseListener(new MouseListener(){ //escucha activa
                 public void mouseClicked(MouseEvent e){
-                    //MOSTRAMOS EN EL LOG:
+                 
+                    
+                    try {
                         
-                }
-                
+                         //Mandamos a llamar a la función que envía/sube multiples archivos
+                         backendCliente.enviaMultiplesArchivos(dos,dis, aplicacion.archivosLocalesSeleccionados, aplicacion.rutaActualArchivos);
+                         
+                                                                                                
+                         
+                        
+                        aplicacion.logsCarpetaCliente.append("Archivos subidos...\n");
+                        aplicacion.logsCarpetaServidor.append("Archivos recibidos ...\n");
+                        
+                        //Actualizamos EL LISTADO DE LA CARPETA ACTUAL (actualizamos la ventana)
+                        backendCliente.enviaPeticion(dos, 8); //Peticion para obtener actualizacion de la lista de carpeta remota
+                        aplicacion.listaArchivos=backendCliente.obtener_ls_remoto(dis);
+                        
+                        aplicacion.listaCarpetaRemota.setListData(aplicacion.listaArchivos);                                                
+                        
+                        
+                        
+                    } catch (IOException ex) {
+                        Logger.getLogger(aplicacionCliente.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }                
                 //otros tipos de eventos
                 public void mouseEntered(MouseEvent e){} public void mouseExited(MouseEvent e){} public void mousePressed(MouseEvent e){} public void mouseReleased(MouseEvent e){}             
             });     
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
+            
+            
+            
             
             
             ///////////////////////////EVENTTOS PARA EL BOTÓN DE DESCARGAR ARCHIVO//////////////////////////////////////////////////////////////////////////
@@ -482,7 +507,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
             });
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             
-            ///////////////////////////EVENTOS PARA EL BOTÓN DE ELIMINAR ARCHIVOS LOCALES//////////////////////////////////////////////////////////////////////////
+            ///////////////////////////EVENTOS PARA EL BOTÓN DE ELIMINAR ARCHIVO LOCAL//////////////////////////////////////////////////////////////////////////
             aplicacion.btnEliminarArchivoLocal.addMouseListener(new MouseListener(){ //escucha activa
                 public void mouseClicked(MouseEvent e){    
                     //esto se hace de manera local, no necesita mandar petición al servidor
@@ -491,7 +516,7 @@ public class aplicacionCliente extends JFrame { //Hereda métodos existentes en 
                     String carpetaActual=aplicacion.archivosLocalesSeleccionados[0].getParent();
                                         
                     
-                    //MANDAMOS A ELIMINAR CADA UNO DE LOS ARCHIVOS EN EL ARREGLO:
+                    //MANDAMOS A ELIMINAR CADA UNO DE LOS ARCHIVOS EN EL ARREGLO DE ARCHIVOS OBTENIDOS POR EL JFILCHOOSER:
                     for(int i=0;i<aplicacion.archivosLocalesSeleccionados.length;i++){
                         String nombreArchivo=aplicacion.archivosLocalesSeleccionados[i].getPath();
                         backendCliente.eliminarArchivoLocal(nombreArchivo);

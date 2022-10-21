@@ -68,6 +68,7 @@ public class ServidorSA {
                     5. Volver a la carpeta padre
                     6. Salir (cerrar conexión cliente-servidor)
                     7. Crear carpeta vacia en remoto (nueva)
+                    8. Enviar ls remoto
                 */
                 
                 //CICLO PARA MANTENER CONEXIÓN CON EL CLIENTE QUE SE HA CONECTADO////////////////////////                                                            
@@ -90,6 +91,7 @@ public class ServidorSA {
                             System.out.println(rutaNavActualCliente);
                             //le mandamos la lista de archivos al abrir esa carpeta
                             envia_ls_remoto(dos, rutaNavActualCliente);
+                            System.out.println("Fin abrir");
                             break;
                         case 2:
                             System.out.println("Cliente ha solicitado subir un archivo/carpeta");
@@ -171,21 +173,25 @@ public class ServidorSA {
 
                             System.out.println("Cliente ha solicitado crear una carpeta");
                             
-                            //Cuando el cliente desea subir una carpeta, entonces debe crearse dicha carpeta en el servidor
-                            //(Se crea vacía)
-                            String nombre = recibePath(dis); //se recibe el nombre de la carpeta que se desea crear
-                            System.out.println(nombre);
+                            //Cuando el cliente desea subir una carpeta, entonces debe crearse dicha carpeta en el servidor                            
+                            String nombre = rutaNavActualCliente+recibePath(dis); //se recibe el nombre de la carpeta que se desea crear
+                                                        
+                            System.out.println("La carpeta a crear es "+ nombre);
+                            
                             File carpeta = new File(nombre);
-                            //sin la diagonal (separador)
-
+                            
                             if (carpeta.mkdir())
                                 System.out.println("Directorio creado en local");
                             else
                                 System.out.println("Error !");
-                            envia_ls_remoto(dos, rutaNavActualCliente);
-                            //Recibimos el nombre de la carpeta
-                            //Creamos la carpeta:
-                            break;
+                            
+                        break;
+                            
+                        case 8: //El cliente desea obtener una actualizacion de la carpeta actual
+                            
+                            envia_ls_remoto(dos, rutaNavActualCliente);                            
+                        break;
+                        
                     }
 
                 }
@@ -314,7 +320,7 @@ public class ServidorSA {
             dos.flush();
             recibidos = recibidos + l;
             porcentaje = (int)((recibidos*100)/tam);
-            System.out.print("\rRecibido el "+ porcentaje +" % del archivo");
+            System.out.println("\rRecibido el "+ porcentaje +" % del archivo");
         }//while
         dos.close();
     }
